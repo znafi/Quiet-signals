@@ -39,16 +39,23 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
         audio: false,
       })
       
+      console.log('[v0] Camera stream obtained:', stream)
       streamRef.current = stream
       
       if (videoRef.current) {
+        console.log('[v0] Setting video stream to element')
         videoRef.current.srcObject = stream
-        videoRef.current.play().catch(err => {
-          console.error('[v0] Video play error:', err)
-        })
-        videoRef.current.onloadedmetadata = () => {
+        
+        // Set camera ready immediately since stream is available
+        setCameraReady(true)
+        
+        // Also try the onloadedmetadata callback as backup
+        const onMetadata = () => {
+          console.log('[v0] Video metadata loaded')
           setCameraReady(true)
+          videoRef.current?.removeEventListener('loadedmetadata', onMetadata)
         }
+        videoRef.current.addEventListener('loadedmetadata', onMetadata)
       }
       
       setPhase('idle')
@@ -225,7 +232,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
 
           {/* Camera preview */}
           {phase !== 'permission' && !cameraError && (
-            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
+            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden">
               <>
                 {/* Live video feed */}
                 <video
@@ -235,7 +242,14 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                   muted
                   width={224}
                   height={224}
-                  className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+                  style={{ 
+                    display: 'block',
+                    width: '100%', 
+                    height: '100%',
+                    objectFit: 'cover',
+                    transform: 'scaleX(-1)',
+                    backgroundColor: 'transparent'
+                  }}
                   aria-label="Camera preview showing your face"
                 />
                 
