@@ -40,9 +40,20 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
       })
       
       streamRef.current = stream
-      // Move to idle phase first so the video element renders
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play().catch(err => {
+          console.error('[v0] Video play error:', err)
+        })
+        videoRef.current.onloadedmetadata = () => {
+          setCameraReady(true)
+        }
+      }
+      
       setPhase('idle')
     } catch (err) {
+      console.error('[v0] Camera error:', err)
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {
           setCameraError('Camera access was denied. Please allow camera access in your browser settings.')
@@ -55,23 +66,6 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
       setPhase('idle')
     }
   }, [])
-
-  // Attach stream to video element when phase changes to idle and stream exists
-  useEffect(() => {
-    if (phase === 'idle' && streamRef.current && videoRef.current && !videoRef.current.srcObject) {
-      videoRef.current.srcObject = streamRef.current
-      videoRef.current.onloadeddata = () => {
-        setCameraReady(true)
-      }
-      // Fallback: set ready after short delay if onloadeddata doesn't fire
-      const fallbackTimer = setTimeout(() => {
-        if (streamRef.current) {
-          setCameraReady(true)
-        }
-      }, 500)
-      return () => clearTimeout(fallbackTimer)
-    }
-  }, [phase])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -231,7 +225,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
 
           {/* Camera preview */}
           {phase !== 'permission' && !cameraError && (
-            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden">
+            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
               <>
                 {/* Live video feed */}
                 <video
@@ -241,14 +235,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                   muted
                   width={224}
                   height={224}
-                  style={{ 
-                    display: 'block',
-                    width: '100%', 
-                    height: '100%',
-                    objectFit: 'cover',
-                    transform: 'scaleX(-1)',
-                    backgroundColor: 'transparent'
-                  }}
+                  className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
                   aria-label="Camera preview showing your face"
                 />
                 
