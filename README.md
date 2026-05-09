@@ -10,7 +10,7 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 
 ## Getting Started
 
-Create a `.env.local` file with your Firebase web app settings:
+Copy `.env.example` to `.env.local`, then fill in your Firebase web app settings:
 
 ```bash
 NEXT_PUBLIC_FIREBASE_API_KEY=
