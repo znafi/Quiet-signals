@@ -147,7 +147,7 @@ export default function ResultsScreen({ session, resources, resultMappings, save
               <div className="flex items-start gap-3">
                 <Camera className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Visual check: possible tension or low energy signal, self-confirmed as{' '}
+                  Visual check: {session.faceSignal.simulatedSignal ?? 'possible tension signal'}, self-confirmed as{' '}
                   <span className="text-foreground font-medium">{session.faceSignal.selfConfirmation ?? 'not confirmed'}</span>.
                 </p>
               </div>
@@ -156,7 +156,7 @@ export default function ResultsScreen({ session, resources, resultMappings, save
               <div className="flex items-start gap-3">
                 <Mic className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Voice reflection: possible pressure signal, self-confirmed as{' '}
+                  Voice reflection: {session.voiceSignal.simulatedSignal ?? 'possible pressure signal'}, self-confirmed as{' '}
                   <span className="text-foreground font-medium">{session.voiceSignal.selfConfirmation ?? 'not confirmed'}</span>.
                 </p>
               </div>

@@ -303,12 +303,16 @@ export default function QuietSignalsApp() {
 
   // ─── Voice signal ─────────────────────────────────────────────────────────────
 
-  const handleVoiceContinue = (confirmation: SelfConfirmation | null, pts: number) => {
+  const handleVoiceContinue = (
+    confirmation: SelfConfirmation | null,
+    pts: number,
+    signalDescription: string | null = null,
+  ) => {
     setSession((s) => ({
       ...s,
       voiceSignal: {
         used: true,
-        simulatedSignal: 'possible pressure signal',
+        simulatedSignal: signalDescription ?? 'low-confidence read',
         selfConfirmation: confirmation,
         supportivePoints: pts,
       },
