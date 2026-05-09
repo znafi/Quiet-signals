@@ -43,6 +43,9 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.play().catch(err => {
+          console.error('[v0] Video play error:', err)
+        })
         videoRef.current.onloadedmetadata = () => {
           setCameraReady(true)
         }
@@ -230,6 +233,8 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                   autoPlay
                   playsInline
                   muted
+                  width={224}
+                  height={224}
                   className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
                   aria-label="Camera preview showing your face"
                 />
