@@ -12,7 +12,7 @@ interface VoiceScreenProps {
   onBack: () => void
 }
 
-type Phase = 'idle' | 'recording' | 'result'
+type Phase = 'permission' | 'idle' | 'recording' | 'result'
 
 const confirmationOptions: { key: SelfConfirmation; label: string }[] = [
   { key: 'yes', label: 'Yes, that feels accurate' },
@@ -52,7 +52,7 @@ function WaveForm({ audioLevel }: { audioLevel: number }) {
 }
 
 export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenProps) {
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [phase, setPhase] = useState<Phase>('permission')
   const [confirmation, setConfirmation] = useState<SelfConfirmation | null>(null)
   const [micError, setMicError] = useState<string | null>(null)
   const [micReady, setMicReady] = useState(false)
@@ -65,55 +65,47 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   const animationFrameRef = useRef<number | null>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Initialize microphone on mount
-  useEffect(() => {
-    let mounted = true
-    
-    async function initMic() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false,
-        })
-        
-        if (!mounted) {
-          stream.getTracks().forEach(track => track.stop())
-          return
-        }
-        
-        streamRef.current = stream
-        
-        // Set up audio analysis
-        const audioContext = new AudioContext()
-        audioContextRef.current = audioContext
-        
-        const analyser = audioContext.createAnalyser()
-        analyser.fftSize = 256
-        analyserRef.current = analyser
-        
-        const source = audioContext.createMediaStreamSource(stream)
-        source.connect(analyser)
-        
-        setMicReady(true)
-      } catch (err) {
-        if (!mounted) return
-        console.error('[v0] Microphone error:', err)
-        if (err instanceof Error) {
-          if (err.name === 'NotAllowedError') {
-            setMicError('Microphone access was denied. Please allow microphone access in your browser settings.')
-          } else if (err.name === 'NotFoundError') {
-            setMicError('No microphone found on this device.')
-          } else {
-            setMicError('Unable to access microphone. Please check your permissions.')
-          }
+  // Request microphone permission when user clicks Allow
+  const requestMicrophonePermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false,
+      })
+      
+      streamRef.current = stream
+      
+      // Set up audio analysis
+      const audioContext = new AudioContext()
+      audioContextRef.current = audioContext
+      
+      const analyser = audioContext.createAnalyser()
+      analyser.fftSize = 256
+      analyserRef.current = analyser
+      
+      const source = audioContext.createMediaStreamSource(stream)
+      source.connect(analyser)
+      
+      setMicReady(true)
+      setPhase('idle')
+    } catch (err) {
+      console.error('[v0] Microphone error:', err)
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setMicError('Microphone access was denied. Please allow microphone access in your browser settings.')
+        } else if (err.name === 'NotFoundError') {
+          setMicError('No microphone found on this device.')
+        } else {
+          setMicError('Unable to access microphone. Please check your permissions.')
         }
       }
+      setPhase('idle')
     }
-    
-    initMic()
-    
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      mounted = false
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
@@ -261,20 +253,63 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
             <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
           </div>
 
-          <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-2">
-            <p
-              className="text-xl font-light text-foreground"
-              style={{ fontFamily: 'var(--font-cormorant)' }}
-            >
-              &ldquo;Describe one workplace moment recently that stayed with you.&rdquo;
-            </p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              You can speak for 20 to 30 seconds. Quiet Signals will look for broad supportive cues such as pace, pauses, hesitation, and energy. This does not diagnose you.
-            </p>
-          </div>
+          {/* Permission request */}
+          <AnimatePresence>
+            {phase === 'permission' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6 w-full max-w-sm"
+              >
+                <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+                  <div className="flex justify-center">
+                    <Mic className="w-10 h-10 text-gold" aria-hidden="true" />
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <h2 className="text-lg font-medium text-foreground">Allow microphone access?</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      We&apos;d like to use your microphone for the voice reflection. You can skip this step if you prefer.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <button
+                    onClick={requestMicrophonePermission}
+                    className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+                  >
+                    Allow microphone
+                  </button>
+                  <button
+                    onClick={handleSkip}
+                    className="w-full py-3 rounded-full text-sm text-muted-foreground hover:text-foreground border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    Skip voice reflection
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {phase !== 'permission' && (
+            <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-2">
+              <p
+                className="text-xl font-light text-foreground"
+                style={{ fontFamily: 'var(--font-cormorant)' }}
+              >
+                &ldquo;Describe one workplace moment recently that stayed with you.&rdquo;
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                You can speak for 20 to 30 seconds. Quiet Signals will look for broad supportive cues such as pace, pauses, hesitation, and energy. This does not diagnose you.
+              </p>
+            </div>
+          )}
 
           {/* Mic visualization */}
-          <div className="flex flex-col items-center gap-6">
+          {phase !== 'permission' && (
+            <div className="flex flex-col items-center gap-6">
             {micError ? (
               <div className="flex flex-col items-center gap-3 p-4 text-center">
                 <AlertCircle className="w-8 h-8 text-terracotta" aria-hidden="true" />
@@ -363,7 +398,8 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
                 )}
               </AnimatePresence>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Simulated result + confirmation */}
           <AnimatePresence>

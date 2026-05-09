@@ -12,7 +12,7 @@ interface FaceScreenProps {
   onBack: () => void
 }
 
-type Phase = 'idle' | 'scanning' | 'result'
+type Phase = 'permission' | 'idle' | 'scanning' | 'result'
 
 const confirmationOptions: { key: SelfConfirmation; label: string }[] = [
   { key: 'yes', label: 'Yes, that feels accurate' },
@@ -22,7 +22,7 @@ const confirmationOptions: { key: SelfConfirmation; label: string }[] = [
 ]
 
 export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenProps) {
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [phase, setPhase] = useState<Phase>('permission')
   const [countdown, setCountdown] = useState(10)
   const [confirmation, setConfirmation] = useState<SelfConfirmation | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
@@ -31,49 +31,42 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  // Initialize camera on mount
-  useEffect(() => {
-    let mounted = true
-    
-    async function initCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: false,
-        })
-        
-        if (!mounted) {
-          stream.getTracks().forEach(track => track.stop())
-          return
-        }
-        
-        streamRef.current = stream
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          videoRef.current.onloadedmetadata = () => {
-            if (mounted) setCameraReady(true)
-          }
-        }
-      } catch (err) {
-        if (!mounted) return
-        console.error('[v0] Camera error:', err)
-        if (err instanceof Error) {
-          if (err.name === 'NotAllowedError') {
-            setCameraError('Camera access was denied. Please allow camera access in your browser settings.')
-          } else if (err.name === 'NotFoundError') {
-            setCameraError('No camera found on this device.')
-          } else {
-            setCameraError('Unable to access camera. Please check your permissions.')
-          }
+  // Request camera permission when user clicks Allow
+  const requestCameraPermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      })
+      
+      streamRef.current = stream
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.onloadedmetadata = () => {
+          setCameraReady(true)
         }
       }
+      
+      setPhase('idle')
+    } catch (err) {
+      console.error('[v0] Camera error:', err)
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setCameraError('Camera access was denied. Please allow camera access in your browser settings.')
+        } else if (err.name === 'NotFoundError') {
+          setCameraError('No camera found on this device.')
+        } else {
+          setCameraError('Unable to access camera. Please check your permissions.')
+        }
+      }
+      setPhase('idle')
     }
-    
-    initCamera()
-    
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      mounted = false
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
@@ -156,8 +149,49 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
             </p>
           </div>
 
+          {/* Permission request */}
+          <AnimatePresence>
+            {phase === 'permission' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6 w-full max-w-sm"
+              >
+                <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+                  <div className="flex justify-center">
+                    <Camera className="w-10 h-10 text-gold" aria-hidden="true" />
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <h2 className="text-lg font-medium text-foreground">Allow camera access?</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      We&apos;d like to use your camera for the visual signal check. You can skip this step if you prefer.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <button
+                    onClick={requestCameraPermission}
+                    className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+                  >
+                    Allow camera
+                  </button>
+                  <button
+                    onClick={handleSkip}
+                    className="w-full py-3 rounded-full text-sm text-muted-foreground hover:text-foreground border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    Skip camera check
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Camera preview */}
-          <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
+          {phase !== 'permission' && (
+            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
             {cameraError ? (
               <div className="flex flex-col items-center gap-3 p-4 text-center">
                 <AlertCircle className="w-8 h-8 text-terracotta" aria-hidden="true" />
@@ -254,6 +288,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
               </>
             )}
           </div>
+          )}
 
           {/* Simulated result + confirmation */}
           <AnimatePresence>
