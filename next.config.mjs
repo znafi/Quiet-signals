@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  turbopack: {},
   webpack: (config) => {
     // MediaPipe ships dynamic WASM imports that webpack flags as a "critical
     // dependency" warning. The import is intentional and harmless, so silence
