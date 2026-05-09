@@ -80,8 +80,8 @@ export const VOICE_ANALYSIS_CONFIG = {
   recordingSeconds: 20,
   minRecordingSeconds: 12,
   analysisFps: 10,
-  // Speech detection
-  speechEnergyThreshold: 0.02,
+  // Speech detection (lowered to handle systems with lower mic gain)
+  speechEnergyThreshold: 0.008,
   silenceGapSeconds: 0.35,
   // Quality gates
   minSpeakingRatio: 0.25,

@@ -120,7 +120,7 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
 
   useEffect(() => {
     if (phase !== 'prescan' || !micReady) return
-    startLivePreview()
+    startLivePreview().catch(() => {})
   }, [phase, micReady, startLivePreview])
 
   /* ──────────────────────────────── cleanup ─────────────────────────────── */
@@ -142,13 +142,13 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
 
   /* ───────────────────────── start actual recording ─────────────────────── */
 
-  const startActualRecording = useCallback(() => {
+  const startActualRecording = useCallback(async () => {
     setOutcome(null)
     setConfirmation(null)
     setPhase('recording')
     setCountdown(VOICE_ANALYSIS_CONFIG.recordingSeconds)
 
-    hookStartRecording()
+    await hookStartRecording()
 
     let remaining = VOICE_ANALYSIS_CONFIG.recordingSeconds
     countdownTimerRef.current = setInterval(() => {

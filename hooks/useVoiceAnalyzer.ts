@@ -97,32 +97,46 @@ export function useVoiceAnalyzer({
     rafRef.current = requestAnimationFrame(loop)
   }, [analysisFps])
 
+  /** Resume the AudioContext if the browser suspended it. */
+  const resumeAudio = useCallback(async () => {
+    const ctx = audioContextRef.current
+    if (ctx && ctx.state === 'suspended') {
+      try {
+        await ctx.resume()
+      } catch {
+        // Non-fatal — loop will still run; meters may lag until resumed.
+      }
+    }
+  }, [])
+
   /**
    * Start the live-preview loop — updates live meters but doesn't
    * collect frames for analysis. Use during the "check your mic" phase.
    */
-  const startLivePreview = useCallback(() => {
+  const startLivePreview = useCallback(async () => {
     isRecordingRef.current = false
     framesRef.current = []
     lastAnalysisRef.current = 0
     isCapturingRef.current = true
+    await resumeAudio()
     if (rafRef.current == null) {
       rafRef.current = requestAnimationFrame(loop)
     }
-  }, [loop])
+  }, [loop, resumeAudio])
 
   /**
    * Start recording frames for classification. Clears previous frames.
    */
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback(async () => {
     framesRef.current = []
     lastAnalysisRef.current = 0
     isRecordingRef.current = true
     isCapturingRef.current = true
+    await resumeAudio()
     if (rafRef.current == null) {
       rafRef.current = requestAnimationFrame(loop)
     }
-  }, [loop])
+  }, [loop, resumeAudio])
 
   /**
    * Stop recording and return the collected frames for classification.
