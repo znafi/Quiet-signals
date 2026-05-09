@@ -307,15 +307,36 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
             </div>
           )}
 
-          {/* Mic visualization */}
-          {phase !== 'permission' && (
-            <div className="flex flex-col items-center gap-6">
-            {micError ? (
-              <div className="flex flex-col items-center gap-3 p-4 text-center">
-                <AlertCircle className="w-8 h-8 text-terracotta" aria-hidden="true" />
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{micError}</p>
+          {/* Mic error state */}
+          {phase !== 'permission' && micError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6 w-full max-w-sm"
+            >
+              <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+                <div className="flex justify-center">
+                  <AlertCircle className="w-10 h-10 text-terracotta" />
+                </div>
+                <div className="space-y-2 text-center">
+                  <h2 className="text-lg font-medium text-foreground">Microphone unavailable</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{micError}</p>
+                </div>
               </div>
-            ) : (
+              
+              <button
+                onClick={handleSkip}
+                className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+              >
+                Continue without microphone
+              </button>
+            </motion.div>
+          )}
+
+          {/* Mic visualization */}
+          {phase !== 'permission' && !micError && (
+            <div className="flex flex-col items-center gap-6">
               <AnimatePresence mode="wait">
                 {phase === 'idle' && (
                   <motion.div

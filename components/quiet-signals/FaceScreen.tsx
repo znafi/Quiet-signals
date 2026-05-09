@@ -39,28 +39,10 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
         audio: false,
       })
       
-      console.log('[v0] Camera stream obtained:', stream)
       streamRef.current = stream
-      
-      if (videoRef.current) {
-        console.log('[v0] Setting video stream to element')
-        videoRef.current.srcObject = stream
-        
-        // Set camera ready immediately since stream is available
-        setCameraReady(true)
-        
-        // Also try the onloadedmetadata callback as backup
-        const onMetadata = () => {
-          console.log('[v0] Video metadata loaded')
-          setCameraReady(true)
-          videoRef.current?.removeEventListener('loadedmetadata', onMetadata)
-        }
-        videoRef.current.addEventListener('loadedmetadata', onMetadata)
-      }
-      
+      // Move to idle phase first so the video element renders
       setPhase('idle')
     } catch (err) {
-      console.error('[v0] Camera error:', err)
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {
           setCameraError('Camera access was denied. Please allow camera access in your browser settings.')
@@ -73,6 +55,23 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
       setPhase('idle')
     }
   }, [])
+
+  // Attach stream to video element when phase changes to idle and stream exists
+  useEffect(() => {
+    if (phase === 'idle' && streamRef.current && videoRef.current && !videoRef.current.srcObject) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.onloadeddata = () => {
+        setCameraReady(true)
+      }
+      // Fallback: set ready after short delay if onloadeddata doesn't fire
+      const fallbackTimer = setTimeout(() => {
+        if (streamRef.current) {
+          setCameraReady(true)
+        }
+      }, 500)
+      return () => clearTimeout(fallbackTimer)
+    }
+  }, [phase])
 
   // Cleanup on unmount
   useEffect(() => {
