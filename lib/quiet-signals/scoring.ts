@@ -8,7 +8,6 @@ import type {
 import { DEFAULT_QUIZ_CONTENT } from './scenarios'
 
 export const MAX_DIMENSION_SCORE = 6
-export const MAX_TOTAL_SCORE = 24
 
 export function createDefaultSession(): UserSession {
   return {
@@ -132,13 +131,12 @@ export function generateResultSummary(session: UserSession): string {
   return `Quiet Signals Burnout Reflection
 
 Burnout Signal: ${signal}
-Total Score: ${session.totalScore} / ${MAX_TOTAL_SCORE}
 
-Dimension Scores:
-- Exhaustion: ${d.exhaustion} / ${MAX_DIMENSION_SCORE}
-- Mental Distancing: ${d.mentalDistancing} / ${MAX_DIMENSION_SCORE}
-- Cognitive Impairment: ${d.cognitiveImpairment} / ${MAX_DIMENSION_SCORE}
-- Emotional Impairment: ${d.emotionalImpairment} / ${MAX_DIMENSION_SCORE}
+Signal Pattern:
+- Exhaustion: ${getScoreLevel(d.exhaustion)}
+- Mental Distancing: ${getScoreLevel(d.mentalDistancing)}
+- Cognitive Impairment: ${getScoreLevel(d.cognitiveImpairment)}
+- Emotional Impairment: ${getScoreLevel(d.emotionalImpairment)}
 
 This reflection is not a diagnosis. It is a pattern-based guide to help you consider what kind of support may be useful.
 Quiet Signals — Urban Consciousness / natIgnite 2026 AccessTech`

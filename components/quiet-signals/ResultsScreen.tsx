@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Download, RotateCcw, CheckCircle, Camera, Mic, FileText, ExternalLink } from 'lucide-react'
+import { AlertTriangle, Copy, Download, RotateCcw, CheckCircle, Camera, Mic, FileText, ExternalLink } from 'lucide-react'
 import type { Resource, ResultMapping, UserSession } from '@/lib/quiet-signals/types'
 import {
   findResultMapping,
@@ -11,7 +11,6 @@ import {
   copyResultSummary,
   generateResultSummary,
   MAX_DIMENSION_SCORE,
-  MAX_TOTAL_SCORE,
 } from '@/lib/quiet-signals/scoring'
 import { useToast } from '@/hooks/use-toast'
 import { Toaster } from '@/components/ui/toaster'
@@ -20,6 +19,7 @@ interface ResultsScreenProps {
   session: UserSession
   resources: Resource[]
   resultMappings: ResultMapping[]
+  saveError?: string | null
   onRestart: () => void
 }
 
@@ -59,7 +59,7 @@ function PatternBar({ label, score, max = 16, color }: { label: string; score: n
   )
 }
 
-export default function ResultsScreen({ session, resources, resultMappings, onRestart }: ResultsScreenProps) {
+export default function ResultsScreen({ session, resources, resultMappings, saveError, onRestart }: ResultsScreenProps) {
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
@@ -114,11 +114,24 @@ export default function ResultsScreen({ session, resources, resultMappings, onRe
           <h1 className="text-4xl md:text-5xl font-light text-foreground text-balance leading-tight" style={{ fontFamily: 'var(--font-cormorant)' }}>
             {resultMapping.title}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Total score: {session.totalScore} / {MAX_TOTAL_SCORE}
-          </p>
           <div className="w-12 h-px bg-gold mt-3" aria-hidden="true" />
         </motion.div>
+
+        {saveError ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="flex items-start gap-3 rounded-2xl border border-destructive/35 bg-destructive/8 p-4"
+            role="alert"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">This reflection was not saved to Firebase.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{saveError}</p>
+            </div>
+          </motion.div>
+        ) : null}
 
         {/* What may be happening */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-2">
@@ -162,7 +175,7 @@ export default function ResultsScreen({ session, resources, resultMappings, onRe
         {/* Burnout signal map */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-5">
           <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Burnout signal map</h2>
-          <div className="space-y-4" role="list" aria-label="Dimension scores">
+          <div className="space-y-4" role="list" aria-label="Dimension signal patterns">
             {Object.entries(session.dimensionScores).map(([key, score]) => (
               <div key={key} role="listitem">
                 <PatternBar
@@ -174,7 +187,7 @@ export default function ResultsScreen({ session, resources, resultMappings, onRe
               </div>
             ))}
           </div>
-          <div className="flex gap-4 pt-1" aria-label="Score level legend">
+          <div className="flex gap-4 pt-1" aria-label="Signal level legend">
             {['Low', 'Moderate', 'High'].map((l) => (
               <span key={l} className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold/40 inline-block" aria-hidden="true" />

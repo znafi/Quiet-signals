@@ -10,6 +10,10 @@ import { getFirebaseDb } from '@/lib/firebase/client'
 import { DEFAULT_QUIZ_CONTENT } from './scenarios'
 import type { QuizContent, Resource, UserContactInfo, UserSession } from './types'
 
+export type FirestoreSaveResult =
+  | { ok: true; id: string }
+  | { ok: false; message: string }
+
 function byOrder<T extends { order?: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
@@ -36,9 +40,25 @@ export async function getQuizContent(): Promise<QuizContent> {
   }
 }
 
-export async function saveUserResult(session: UserSession): Promise<string | null> {
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown Firebase error'
+}
+
+export async function saveUserResult(session: UserSession): Promise<FirestoreSaveResult> {
   const db = getFirebaseDb()
-  if (!db || !session.contactInfo?.consentToStoreContact) return null
+  if (!db) {
+    return {
+      ok: false,
+      message: 'Firebase is not configured for this build.',
+    }
+  }
+
+  if (!session.contactInfo?.consentToStoreContact) {
+    return {
+      ok: false,
+      message: 'Contact consent was missing when the reflection was submitted.',
+    }
+  }
 
   const contactInfo = {
     email: session.contactInfo.email.trim().toLowerCase(),
@@ -63,10 +83,14 @@ export async function saveUserResult(session: UserSession): Promise<string | nul
       voiceSignal: session.voiceSignal,
     })
 
-    return resultDoc.id
+    return { ok: true, id: resultDoc.id }
   } catch (error) {
+    const message = getErrorMessage(error)
     console.warn('Unable to save user result to Firestore.', error)
-    return null
+    return {
+      ok: false,
+      message,
+    }
   }
 }
 

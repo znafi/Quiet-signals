@@ -197,6 +197,7 @@ export default function QuietSignalsApp() {
   const [scenarioIndex, setScenarioIndex] = useState(0)
   const [questionIndex, setQuestionIndex] = useState(0)
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // ─── Navigation helpers ──────────────────────────────────────────────────────
 
@@ -223,6 +224,7 @@ export default function QuietSignalsApp() {
     setScenarioIndex(0)
     setQuestionIndex(0)
     setIsContactDialogOpen(false)
+    setSaveError(null)
     setScreen('landing')
   }, [])
 
@@ -337,8 +339,14 @@ export default function QuietSignalsApp() {
 
     if (isLastQuestion && isLastScenario) {
       const finalizedSession = finalizeSession(updatedSession, quizContent.resultMappings)
-      const resultId = await saveUserResult(finalizedSession)
-      setSession(resultId ? { ...finalizedSession, resultId } : finalizedSession)
+      const saveResult = await saveUserResult(finalizedSession)
+      if (saveResult.ok) {
+        setSaveError(null)
+        setSession({ ...finalizedSession, resultId: saveResult.id })
+      } else {
+        setSaveError(saveResult.message)
+        setSession(finalizedSession)
+      }
       goTo('processing')
     } else if (isLastQuestion) {
       setSession(updatedSession)
@@ -453,6 +461,7 @@ export default function QuietSignalsApp() {
             session={session}
             resources={quizContent.resources}
             resultMappings={quizContent.resultMappings}
+            saveError={saveError}
             onRestart={restart}
           />
         </PageTransition>
