@@ -13,6 +13,7 @@ export const MAX_TOTAL_SCORE = 24
 export function createDefaultSession(): UserSession {
   return {
     entryPathway: '',
+    contactInfo: null,
     reflectionMode: null,
     consent: {
       camera: false,

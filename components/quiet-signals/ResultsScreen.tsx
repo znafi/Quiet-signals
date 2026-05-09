@@ -9,6 +9,7 @@ import {
   normalizeScore,
   getScoreLevel,
   copyResultSummary,
+  generateResultSummary,
   MAX_DIMENSION_SCORE,
   MAX_TOTAL_SCORE,
 } from '@/lib/quiet-signals/scoring'
@@ -19,7 +20,6 @@ interface ResultsScreenProps {
   session: UserSession
   resources: Resource[]
   resultMappings: ResultMapping[]
-  onEmailCapture: () => void
   onRestart: () => void
 }
 
@@ -59,7 +59,7 @@ function PatternBar({ label, score, max = 16, color }: { label: string; score: n
   )
 }
 
-export default function ResultsScreen({ session, resources, resultMappings, onEmailCapture, onRestart }: ResultsScreenProps) {
+export default function ResultsScreen({ session, resources, resultMappings, onRestart }: ResultsScreenProps) {
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
@@ -76,7 +76,14 @@ export default function ResultsScreen({ session, resources, resultMappings, onEm
   }
 
   const handleDownload = () => {
-    toast({ title: 'Summary prepared for demo.', description: 'No real data was saved in this prototype.' })
+    const blob = new Blob([generateResultSummary(session)], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'quiet-signals-reflection.txt'
+    link.click()
+    URL.revokeObjectURL(url)
+    toast({ title: 'Summary downloaded', description: 'Your reflection summary was downloaded as a text file.' })
   }
 
   return (
@@ -145,7 +152,7 @@ export default function ResultsScreen({ session, resources, resultMappings, onEm
               <div className="flex items-start gap-3">
                 <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Camera and voice signals are coming soon. Your result is based on scenario responses only.
+                  Camera and voice signals were skipped. Your result is based on scenario responses only.
                 </p>
               </div>
             )}
@@ -236,17 +243,10 @@ export default function ResultsScreen({ session, resources, resultMappings, onEm
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Download summary (demo)"
+            aria-label="Download summary"
           >
             <Download className="w-4 h-4" aria-hidden="true" />
             Download summary
-          </button>
-          <button
-            onClick={onEmailCapture}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Get a copy via email"
-          >
-            Get a copy via email
           </button>
         </motion.div>
       </div>

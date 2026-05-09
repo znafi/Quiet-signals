@@ -144,11 +144,11 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
               className="text-4xl md:text-5xl font-light text-foreground text-balance"
               style={{ fontFamily: 'var(--font-cormorant)' }}
             >
-              Visual signal check (Coming soon)
+              Visual signal check
             </h1>
             <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
             <p className="text-sm text-muted-foreground leading-relaxed text-pretty max-w-sm mx-auto">
-              Camera-based checks are coming soon. They will look for broad visible cues such as tension, low energy, or pressure activation as supportive context only.
+              This optional camera-based check looks for broad visible cues such as tension, low energy, or pressure activation as supportive context only.
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                     <Camera className="w-10 h-10 text-gold" aria-hidden="true" />
                   </div>
                   <div className="space-y-2 text-center">
-                    <h2 className="text-lg font-medium text-foreground">Allow camera access? (Coming soon)</h2>
+                    <h2 className="text-lg font-medium text-foreground">Allow camera access?</h2>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       We&apos;d like to use your camera for the visual signal check. You can skip this step if you prefer.
                     </p>

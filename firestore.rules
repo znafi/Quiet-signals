@@ -1,0 +1,192 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function hasOnlyFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidSignal(signal) {
+      return signal in ['Low', 'Moderate', 'High'];
+    }
+
+    function isValidConfirmation(value) {
+      return value == null || value in ['yes', 'somewhat', 'no', 'unsure'];
+    }
+
+    function isValidObservedSignal(signal, allowedText) {
+      return signal is map
+        && signal.keys().hasOnly([
+          'used',
+          'simulatedSignal',
+          'selfConfirmation',
+          'supportivePoints'
+        ])
+        && signal.used is bool
+        && (signal.simulatedSignal == null || signal.simulatedSignal == allowedText)
+        && isValidConfirmation(signal.selfConfirmation)
+        && signal.supportivePoints is number
+        && signal.supportivePoints >= 0
+        && signal.supportivePoints <= 2;
+    }
+
+    function isValidConsent(consent) {
+      return consent is map
+        && consent.keys().hasOnly([
+          'camera',
+          'voice',
+          'nonDiagnosticAcknowledged',
+          'supportiveSignalsAcknowledged',
+          'consentGiven'
+        ])
+        && consent.camera is bool
+        && consent.voice is bool
+        && consent.nonDiagnosticAcknowledged == true
+        && consent.supportiveSignalsAcknowledged == true
+        && consent.consentGiven == true;
+    }
+
+    function isValidDimensionScores(scores) {
+      return scores is map
+        && scores.keys().hasOnly([
+          'exhaustion',
+          'mentalDistancing',
+          'cognitiveImpairment',
+          'emotionalImpairment'
+        ])
+        && scores.exhaustion is number
+        && scores.mentalDistancing is number
+        && scores.cognitiveImpairment is number
+        && scores.emotionalImpairment is number
+        && scores.exhaustion >= 0
+        && scores.exhaustion <= 6
+        && scores.mentalDistancing >= 0
+        && scores.mentalDistancing <= 6
+        && scores.cognitiveImpairment >= 0
+        && scores.cognitiveImpairment <= 6
+        && scores.emotionalImpairment >= 0
+        && scores.emotionalImpairment <= 6;
+    }
+
+    function isValidUserResult() {
+      return hasOnlyFields([
+          'answers',
+          'burnoutSignal',
+          'consent',
+          'consentToStoreContact',
+          'createdAt',
+          'dimensionScores',
+          'email',
+          'entryPathway',
+          'faceSignal',
+          'name',
+          'privacyVersion',
+          'reflectionMode',
+          'totalScore',
+          'voiceSignal'
+        ])
+        && request.resource.data.answers is list
+        && request.resource.data.answers.size() <= 12
+        && isValidSignal(request.resource.data.burnoutSignal)
+        && isValidConsent(request.resource.data.consent)
+        && request.resource.data.consentToStoreContact == true
+        && request.resource.data.createdAt == request.time
+        && isValidDimensionScores(request.resource.data.dimensionScores)
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.entryPathway in ['individual', 'organization']
+        && isValidObservedSignal(
+          request.resource.data.faceSignal,
+          'possible tension or low energy'
+        )
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.privacyVersion == '2026-05-09'
+        && request.resource.data.reflectionMode in ['camera-and-voice', 'voice-only', 'text-only']
+        && request.resource.data.totalScore is number
+        && request.resource.data.totalScore >= 0
+        && request.resource.data.totalScore <= 24
+        && request.resource.data.totalScore ==
+          request.resource.data.dimensionScores.exhaustion +
+          request.resource.data.dimensionScores.mentalDistancing +
+          request.resource.data.dimensionScores.cognitiveImpairment +
+          request.resource.data.dimensionScores.emotionalImpairment
+        && isValidObservedSignal(
+          request.resource.data.voiceSignal,
+          'possible pressure signal'
+        );
+    }
+
+    function isValidEmail(email) {
+      return email is string
+        && email.size() >= 6
+        && email.size() <= 254
+        && email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+    }
+
+    function isValidUserContact() {
+      return hasOnlyFields([
+          'burnoutSignal',
+          'consentToStoreContact',
+          'createdAt',
+          'dimensionScores',
+          'email',
+          'entryPathway',
+          'name',
+          'privacyVersion',
+          'reflectionMode',
+          'resultId',
+          'totalScore'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.consentToStoreContact == true
+        && request.resource.data.createdAt == request.time
+        && isValidDimensionScores(request.resource.data.dimensionScores)
+        && isValidSignal(request.resource.data.burnoutSignal)
+        && request.resource.data.entryPathway in ['individual', 'organization']
+        && request.resource.data.privacyVersion == '2026-05-09'
+        && request.resource.data.reflectionMode in ['camera-and-voice', 'voice-only', 'text-only']
+        && (request.resource.data.resultId == null || request.resource.data.resultId is string)
+        && request.resource.data.totalScore is number
+        && request.resource.data.totalScore >= 0
+        && request.resource.data.totalScore <= 24
+        && request.resource.data.totalScore ==
+          request.resource.data.dimensionScores.exhaustion +
+          request.resource.data.dimensionScores.mentalDistancing +
+          request.resource.data.dimensionScores.cognitiveImpairment +
+          request.resource.data.dimensionScores.emotionalImpairment;
+    }
+
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /resources/{resourceId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /resultMappings/{mappingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /userResults/{resultId} {
+      allow create: if isValidUserResult();
+      allow read, update, delete: if false;
+    }
+
+    match /userContacts/{contactId} {
+      allow create: if isValidUserContact();
+      allow read, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

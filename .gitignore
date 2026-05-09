@@ -8,8 +8,12 @@ __v0_jsx-dev-runtime.ts
 
 # Environment variables
 .env*.local
+.firebaserc
+service-account*.json
+firebase-service-account*.json
 
 # Common ignores
 node_modules
 .next/
+tsconfig.tsbuildinfo
 .DS_Store

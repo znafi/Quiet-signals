@@ -14,16 +14,14 @@ const modes: { key: ReflectionMode; icon: React.ElementType; title: string; desc
   {
     key: 'camera-and-voice',
     icon: Camera,
-    title: 'Use camera and voice (Coming soon)',
-    description: 'Optional visual and voice based supportive signals are not available yet.',
-    disabled: true,
+    title: 'Use camera and voice',
+    description: 'Add optional visual and voice based supportive signals before the scenarios.',
   },
   {
     key: 'voice-only',
     icon: Mic,
-    title: 'Use voice only (Coming soon)',
-    description: 'A short voice reflection without camera is not available yet.',
-    disabled: true,
+    title: 'Use voice only',
+    description: 'Add a short voice reflection without camera before the scenarios.',
   },
   {
     key: 'text-only',
@@ -70,7 +68,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
             </h1>
             <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
             <p className="text-sm text-muted-foreground leading-relaxed text-pretty">
-              Quiet Signals currently uses scenario responses as the main reflection. Camera and voice inputs are coming soon and will provide optional supportive context only.
+              Quiet Signals uses scenario responses as the main reflection. Camera and voice inputs provide optional supportive context only.
             </p>
           </div>
 
@@ -131,7 +129,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4">Required acknowledgements</p>
             {[
               { id: 'nonDiag', label: 'I understand this is not a diagnosis.', checked: nonDiag, onChange: setNonDiag },
-              { id: 'supportive', label: 'I understand camera and voice supportive signals are coming soon.', checked: supportive, onChange: setSupportive },
+              { id: 'supportive', label: 'I understand camera and voice supportive signals are optional context only.', checked: supportive, onChange: setSupportive },
               { id: 'consentGiven', label: 'I consent to continue with the selected reflection mode.', checked: consent, onChange: setConsent },
             ].map(({ id, label, checked, onChange }) => (
               <label key={id} htmlFor={id} className="flex items-start gap-3 cursor-pointer group">

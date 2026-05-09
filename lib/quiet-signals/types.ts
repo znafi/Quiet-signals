@@ -37,6 +37,7 @@ export interface ConsentState {
 
 export interface UserSession {
   entryPathway: 'individual' | 'organization' | ''
+  contactInfo: UserContactInfo | null
   reflectionMode: ReflectionMode | null
   consent: ConsentState
   faceSignal: FaceSignal
@@ -54,6 +55,12 @@ export interface AnswerRecord {
   scenarioIndex: number
   questionIndex: number
   choiceKey: string
+}
+
+export interface UserContactInfo {
+  name: string
+  email: string
+  consentToStoreContact: boolean
 }
 
 // ─── Scenario Data Types ──────────────────────────────────────────────────────

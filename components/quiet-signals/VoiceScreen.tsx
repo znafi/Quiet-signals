@@ -248,7 +248,7 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
               className="text-4xl md:text-5xl font-light text-foreground text-balance"
               style={{ fontFamily: 'var(--font-cormorant)' }}
             >
-              Voice reflection (Coming soon)
+              Voice reflection
             </h1>
             <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
           </div>
@@ -269,7 +269,7 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
                   <div className="space-y-2 text-center">
                     <h2 className="text-lg font-medium text-foreground">Allow microphone access?</h2>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Voice reflection is coming soon. You can skip this step and continue with scenario responses.
+                      We&apos;d like to use your microphone for the voice reflection. You can skip this step if you prefer.
                     </p>
                   </div>
                 </div>

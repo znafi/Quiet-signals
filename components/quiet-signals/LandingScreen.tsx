@@ -9,11 +9,11 @@ interface LandingScreenProps {
 }
 
 const badges = [
-  { icon: Camera, label: 'Camera optional (Coming soon)' },
-  { icon: Mic, label: 'Voice optional (Coming soon)' },
+  { icon: Camera, label: 'Camera optional' },
+  { icon: Mic, label: 'Voice optional' },
   { icon: Brain, label: 'Low cognitive load' },
   { icon: ChevronRight, label: 'Leadership focused' },
-  { icon: Lock, label: 'Private by design' },
+  { icon: Lock, label: 'Name and email required' },
 ]
 
 // Quiet signal wave SVG
@@ -117,7 +117,7 @@ export default function LandingScreen({ onStart, onHowItWorks }: LandingScreenPr
             Notice what pressure is trying to tell you.
           </p>
           <p className="text-base text-muted-foreground leading-relaxed text-pretty max-w-xl mx-auto">
-            A private leadership reflection tool that helps you recognize hidden pressure patterns and find the right next step.
+            A leadership reflection tool that helps you recognize hidden pressure patterns and find the right next step.
           </p>
         </motion.div>
 
@@ -135,9 +135,9 @@ export default function LandingScreen({ onStart, onHowItWorks }: LandingScreenPr
               background: 'oklch(0.62 0.12 70)',
               color: 'oklch(0.985 0.004 80)',
             }}
-            aria-label="Start your private reflection"
+            aria-label="Start your reflection"
           >
-            <span className="relative z-10">Start private reflection</span>
+            <span className="relative z-10">Start reflection</span>
             <motion.div
               className="absolute inset-0 rounded-full"
               style={{ background: 'oklch(0.55 0.12 70)' }}

@@ -21,12 +21,17 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 ```
 
+See [docs/firebase-setup.md](docs/firebase-setup.md) for the full Firebase console setup, Firestore rules, and collection notes.
+
 Firestore collections used by the app:
 
-- `questions`: scenario documents with `order`, `title`, `scenarioText`, and `questions`.
 - `resources`: result resources with `title`, `description`, optional `url`, optional `signal`, and `order`.
-- `resultMappings`: score band documents with `signal`, `minScore`, `maxScore`, `title`, `description`, and `recommendation`.
 - `userResults`: saved completed quiz results.
+- `userContacts`: optional opt-in contact records with name, email, consent, and score summary.
+
+Scoring questions and score bands are bundled in `lib/quiet-signals/scenarios.ts` so stale Firestore content cannot override the scoring matrix.
+
+Personal contact details are not required to see results. They are saved only when a user explicitly submits the contact form.
 
 First, run the development server:
 

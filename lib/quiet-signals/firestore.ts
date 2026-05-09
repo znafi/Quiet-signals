@@ -1,16 +1,14 @@
 import {
   addDoc,
   collection,
-  doc,
   getDocs,
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
 } from 'firebase/firestore'
 import { getFirebaseDb } from '@/lib/firebase/client'
 import { DEFAULT_QUIZ_CONTENT } from './scenarios'
-import type { QuizContent, Resource, ResultMapping, Scenario, UserSession } from './types'
+import type { QuizContent, Resource, UserContactInfo, UserSession } from './types'
 
 function byOrder<T extends { order?: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -21,30 +19,16 @@ export async function getQuizContent(): Promise<QuizContent> {
   if (!db) return DEFAULT_QUIZ_CONTENT
 
   try {
-    const [questionSnapshot, resourcesSnapshot, mappingsSnapshot] = await Promise.all([
-      getDocs(query(collection(db, 'questions'), orderBy('order'))),
-      getDocs(query(collection(db, 'resources'), orderBy('order'))),
-      getDocs(query(collection(db, 'resultMappings'), orderBy('minScore'))),
-    ])
-
-    const questions = questionSnapshot.docs.map((questionDoc) => ({
-      id: questionDoc.id,
-      ...questionDoc.data(),
-    })) as Scenario[]
-
+    const resourcesSnapshot = await getDocs(query(collection(db, 'resources'), orderBy('order')))
     const resources = resourcesSnapshot.docs.map((resourceDoc) => ({
       id: resourceDoc.id,
       ...resourceDoc.data(),
     })) as Resource[]
 
-    const resultMappings = mappingsSnapshot.docs.map((mappingDoc) => ({
-      ...mappingDoc.data(),
-    })) as ResultMapping[]
-
     return {
-      questions: questions.length ? byOrder(questions) : DEFAULT_QUIZ_CONTENT.questions,
+      questions: DEFAULT_QUIZ_CONTENT.questions,
       resources: resources.length ? byOrder(resources) : DEFAULT_QUIZ_CONTENT.resources,
-      resultMappings: resultMappings.length ? resultMappings : DEFAULT_QUIZ_CONTENT.resultMappings,
+      resultMappings: DEFAULT_QUIZ_CONTENT.resultMappings,
     }
   } catch (error) {
     console.warn('Falling back to bundled quiz content after Firestore read failed.', error)
@@ -54,17 +38,26 @@ export async function getQuizContent(): Promise<QuizContent> {
 
 export async function saveUserResult(session: UserSession): Promise<string | null> {
   const db = getFirebaseDb()
-  if (!db) return null
+  if (!db || !session.contactInfo?.consentToStoreContact) return null
+
+  const contactInfo = {
+    email: session.contactInfo.email.trim().toLowerCase(),
+    name: session.contactInfo.name.trim(),
+  }
 
   try {
     const resultDoc = await addDoc(collection(db, 'userResults'), {
       answers: session.answers,
       burnoutSignal: session.burnoutSignal,
+      consentToStoreContact: true,
       consent: session.consent,
       createdAt: serverTimestamp(),
       dimensionScores: session.dimensionScores,
+      email: contactInfo.email,
       entryPathway: session.entryPathway,
       faceSignal: session.faceSignal,
+      name: contactInfo.name,
+      privacyVersion: '2026-05-09',
       reflectionMode: session.reflectionMode,
       totalScore: session.totalScore,
       voiceSignal: session.voiceSignal,
@@ -77,25 +70,31 @@ export async function saveUserResult(session: UserSession): Promise<string | nul
   }
 }
 
-export async function seedQuizContent(content: QuizContent = DEFAULT_QUIZ_CONTENT): Promise<void> {
+export async function saveUserContact(
+  contact: UserContactInfo,
+  session: UserSession
+): Promise<string | null> {
   const db = getFirebaseDb()
-  if (!db) throw new Error('Firebase is not configured.')
+  if (!db || !contact.consentToStoreContact) return null
 
-  await Promise.all([
-    ...content.questions.map((scenario, index) =>
-      setDoc(doc(db, 'questions', scenario.id ?? `scenario-${index + 1}`), {
-        ...scenario,
-        order: scenario.order ?? index + 1,
-      })
-    ),
-    ...content.resources.map((resource, index) =>
-      setDoc(doc(db, 'resources', resource.id ?? `resource-${index + 1}`), {
-        ...resource,
-        order: resource.order ?? index + 1,
-      })
-    ),
-    ...content.resultMappings.map((mapping) =>
-      setDoc(doc(db, 'resultMappings', mapping.signal.toLowerCase()), mapping)
-    ),
-  ])
+  try {
+    const contactDoc = await addDoc(collection(db, 'userContacts'), {
+      burnoutSignal: session.burnoutSignal,
+      consentToStoreContact: true,
+      createdAt: serverTimestamp(),
+      dimensionScores: session.dimensionScores,
+      email: contact.email.trim().toLowerCase(),
+      entryPathway: session.entryPathway,
+      name: contact.name.trim(),
+      privacyVersion: '2026-05-09',
+      reflectionMode: session.reflectionMode,
+      resultId: session.resultId ?? null,
+      totalScore: session.totalScore,
+    })
+
+    return contactDoc.id
+  } catch (error) {
+    console.warn('Unable to save user contact to Firestore.', error)
+    return null
+  }
 }

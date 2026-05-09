@@ -5,25 +5,55 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Toaster } from '@/components/ui/toaster'
+import { saveUserContact } from '@/lib/quiet-signals/firestore'
+import type { UserSession } from '@/lib/quiet-signals/types'
 
 interface EmailScreenProps {
+  session: UserSession
   onBack: () => void
   onRestart: () => void
 }
 
-export default function EmailScreen({ onBack, onRestart }: EmailScreenProps) {
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export default function EmailScreen({ session, onBack, onRestart }: EmailScreenProps) {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [consented, setConsented] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const canSubmit = name.trim().length > 1 && EMAIL_PATTERN.test(email.trim()) && consented && !isSubmitting
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !consented) return
+    if (!canSubmit) return
+
+    setIsSubmitting(true)
+    const contactId = await saveUserContact(
+      {
+        name,
+        email,
+        consentToStoreContact: consented,
+      },
+      session
+    )
+    setIsSubmitting(false)
+
+    if (!contactId) {
+      toast({
+        title: 'Could not save contact details',
+        description: 'Check that Firebase is configured and Firestore rules are deployed.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSubmitted(true)
     toast({
-      title: 'Reflection saved for demo.',
-      description: 'No real email was sent in this prototype.',
+      title: 'Reflection saved',
+      description: 'Your contact details and score summary were saved with your consent.',
     })
   }
 
@@ -59,11 +89,30 @@ export default function EmailScreen({ onBack, onRestart }: EmailScreenProps) {
                 </h1>
                 <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Enter your email to receive your Quiet Signals summary and next step.
+                  Share your name and email if you want Quiet Signals to save your score summary with your contact details.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium text-foreground">
+                    Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-warm-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold focus:ring-2 focus:ring-ring transition-colors"
+                    aria-required="true"
+                    aria-label="Name"
+                    autoComplete="name"
+                    maxLength={80}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-foreground">
                     Email address
@@ -78,6 +127,8 @@ export default function EmailScreen({ onBack, onRestart }: EmailScreenProps) {
                     className="w-full px-4 py-3 rounded-xl border-2 border-warm-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold focus:ring-2 focus:ring-ring transition-colors"
                     aria-required="true"
                     aria-label="Email address"
+                    autoComplete="email"
+                    maxLength={254}
                   />
                 </div>
 
@@ -105,20 +156,20 @@ export default function EmailScreen({ onBack, onRestart }: EmailScreenProps) {
                     </div>
                   </div>
                   <span className="text-sm text-muted-foreground leading-relaxed">
-                    I consent to being contacted about this reflection.
+                    I consent to Quiet Signals storing my name, email, and score summary for follow-up. I understand this reflection is not a diagnosis.
                   </span>
                 </label>
 
                 <button
                   type="submit"
-                  disabled={!email || !consented}
+                  disabled={!canSubmit}
                   className={`w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                    email && consented ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
+                    canSubmit ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
                   }`}
-                  style={email && consented ? { background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' } : { background: 'oklch(0.88 0.018 70)', color: 'oklch(0.52 0.02 65)' }}
-                  aria-disabled={!email || !consented}
+                  style={canSubmit ? { background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' } : { background: 'oklch(0.88 0.018 70)', color: 'oklch(0.52 0.02 65)' }}
+                  aria-disabled={!canSubmit}
                 >
-                  Send my reflection
+                  {isSubmitting ? 'Saving...' : 'Save my reflection'}
                 </button>
               </form>
             </>
@@ -137,7 +188,7 @@ export default function EmailScreen({ onBack, onRestart }: EmailScreenProps) {
                   Reflection saved
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Reflection saved for demo. No real email was sent in this prototype.
+                  Your contact details and score summary were saved. You can start a new reflection when ready.
                 </p>
               </div>
               <button
