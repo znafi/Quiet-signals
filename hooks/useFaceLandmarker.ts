@@ -58,6 +58,7 @@ export function useFaceLandmarker({
   const lastTimestampRef = useRef<number>(0)
   const framesRef = useRef<FrameMeasurement[]>([])
   const isCapturingRef = useRef(false)
+  const isRecordingRef = useRef(false) // true only during the real 10-s scan
   const lastPoseRef = useRef<{ yaw: number; pitch: number; roll: number } | null>(null)
 
   /** Load model once (idempotent). Tries GPU first, falls back to CPU. */
@@ -169,7 +170,8 @@ export function useFaceLandmarker({
       headPitch: pose.pitch,
       headRoll: pose.roll,
     }
-    framesRef.current.push(frame)
+    // Only collect frames when we're in the real recording window.
+    if (isRecordingRef.current) framesRef.current.push(frame)
 
     if (hasFace && blendshapes) {
       const motionDelta = lastPoseRef.current
@@ -211,7 +213,12 @@ export function useFaceLandmarker({
     rafRef.current = requestAnimationFrame(loop)
   }, [videoRef, analysisFps])
 
-  const startCapture = useCallback(async () => {
+  /**
+   * Start the live-preview loop (for pre-scan meters) without recording frames.
+   * Safe to call before the real scan starts.
+   */
+  const startLivePreview = useCallback(async () => {
+    isRecordingRef.current = false
     framesRef.current = []
     lastPoseRef.current = null
     lastAnalysisRef.current = 0
@@ -224,7 +231,26 @@ export function useFaceLandmarker({
     }
   }, [ensureLoaded, loop])
 
+  /**
+   * Begin the real recording window — clears any preview frames and starts
+   * collecting measurements for classification.
+   */
+  const startCapture = useCallback(async () => {
+    framesRef.current = []
+    lastPoseRef.current = null
+    lastAnalysisRef.current = 0
+    lastTimestampRef.current = 0
+    isRecordingRef.current = true
+    isCapturingRef.current = true
+    setStatus('analyzing')
+    await ensureLoaded()
+    if (rafRef.current == null) {
+      rafRef.current = requestAnimationFrame(loop)
+    }
+  }, [ensureLoaded, loop])
+
   const stopCapture = useCallback((): FrameMeasurement[] => {
+    isRecordingRef.current = false
     isCapturingRef.current = false
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current)
@@ -255,6 +281,7 @@ export function useFaceLandmarker({
     errorMessage,
     liveSnapshot,
     ensureLoaded,
+    startLivePreview,
     startCapture,
     stopCapture,
   }
