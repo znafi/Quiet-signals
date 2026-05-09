@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertTriangle, Copy, Download, RotateCcw, CheckCircle, Camera, Mic, FileText, ExternalLink } from 'lucide-react'
 import type { Resource, ResultMapping, UserSession } from '@/lib/quiet-signals/types'
@@ -61,13 +61,59 @@ function PatternBar({ label, score, max = 16, color }: { label: string; score: n
 
 export default function ResultsScreen({ session, resources, resultMappings, saveError, onRestart }: ResultsScreenProps) {
   const [copied, setCopied] = useState(false)
+  const [personalizedSummary, setPersonalizedSummary] = useState<string | null>(null)
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false)
   const { toast } = useToast()
 
   const resultMapping = findResultMapping(session.totalScore, resultMappings)
   const signalResources = resources.filter((resource) => !resource.signal || resource.signal === 'All' || resource.signal === session.burnoutSignal)
+  const summaryText = personalizedSummary || resultMapping.description
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadPersonalizedSummary() {
+      setIsSummaryLoading(true)
+      setPersonalizedSummary(null)
+
+      try {
+        const response = await fetch('/api/quiet-signals/summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resultId: session.resultId,
+            session,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Summary request failed.')
+        }
+
+        const data = await response.json()
+        const summary = typeof data.summary === 'string' ? data.summary.trim() : ''
+        if (isMounted && summary) {
+          setPersonalizedSummary(summary)
+        }
+      } catch (error) {
+        console.warn('Unable to load personalized summary.', error)
+      } finally {
+        if (isMounted) setIsSummaryLoading(false)
+      }
+    }
+
+    loadPersonalizedSummary()
+
+    return () => {
+      isMounted = false
+    }
+  }, [session])
 
   const handleCopy = async () => {
-    const ok = await copyResultSummary(session)
+    const ok = await navigator.clipboard
+      .writeText(generateResultSummary(session, personalizedSummary ?? undefined))
+      .then(() => true)
+      .catch(() => copyResultSummary(session))
     if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
@@ -76,7 +122,7 @@ export default function ResultsScreen({ session, resources, resultMappings, save
   }
 
   const handleDownload = () => {
-    const blob = new Blob([generateResultSummary(session)], { type: 'text/plain;charset=utf-8' })
+    const blob = new Blob([generateResultSummary(session, personalizedSummary ?? undefined)], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -136,7 +182,10 @@ export default function ResultsScreen({ session, resources, resultMappings, save
         {/* What may be happening */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-2">
           <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">What may be happening</h2>
-          <p className="text-sm text-foreground leading-relaxed text-pretty">{resultMapping.description}</p>
+          <p className="text-sm text-foreground leading-relaxed text-pretty">{summaryText}</p>
+          {isSummaryLoading ? (
+            <p className="text-xs text-muted-foreground">Creating a personalized summary...</p>
+          ) : null}
         </motion.div>
 
         {/* Supportive signals */}

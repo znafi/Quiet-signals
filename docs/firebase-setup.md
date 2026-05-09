@@ -26,7 +26,27 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 
 Restart `npm run dev` after changing `.env.local`.
 
-## 3. Deploy Firestore rules
+## 3. Add Gemini and server-side Firebase variables
+
+The final personalized summary is generated on the server. Add a Gemini key from Google AI Studio:
+
+```bash
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+The app still uses local scoring to decide the result. Gemini only receives structured result data and writes the short “What may be happening” summary.
+
+For the summary route to read the saved `userResults` document from Firestore, also configure Firebase Admin credentials:
+
+```bash
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_SERVICE_ACCOUNT_KEY=./service-account.json
+```
+
+You can use `FIREBASE_SERVICE_ACCOUNT_JSON` instead of `FIREBASE_SERVICE_ACCOUNT_KEY` in hosted environments.
+
+## 4. Deploy Firestore rules
 
 Install/login to the Firebase CLI if needed:
 
@@ -49,7 +69,7 @@ Deploy rules:
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-## 4. Seed quiz content
+## 5. Seed quiz content
 
 Firestore starts empty. Seed the quiz content collections from `lib/quiet-signals/scenarios.ts`:
 
@@ -74,7 +94,7 @@ npm run seed:firestore
 
 Do not commit service account JSON files. `service-account*.json` and `firebase-service-account*.json` are ignored by git.
 
-## 5. Firestore collections
+## 6. Firestore collections
 
 The app reads optional content from this collection:
 
@@ -92,7 +112,7 @@ The included security rules allow public reads for quiz content, public creates 
 
 `userResults` stores completed real reflection results with the required name, email, consent flag, score summary, and raw answer choices. Demo profiles do not create Firestore documents.
 
-## 6. Optional content documents
+## 7. Optional content documents
 
 Only add these documents if you want to manage result resources from Firestore instead of the bundled code.
 

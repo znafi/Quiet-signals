@@ -124,13 +124,15 @@ export function getScoreLevel(score: number, max = MAX_DIMENSION_SCORE): ScoreLe
   return 'High'
 }
 
-export function generateResultSummary(session: UserSession): string {
+export function generateResultSummary(session: UserSession, personalizedSummary?: string): string {
   const d = session.dimensionScores
   const signal = session.burnoutSignal || getBurnoutSignal(session.totalScore)
 
   return `Quiet Signals Burnout Reflection
 
 Burnout Signal: ${signal}
+
+${personalizedSummary ? `Personalized Summary:\n${personalizedSummary}\n` : ''}
 
 Signal Pattern:
 - Exhaustion: ${getScoreLevel(d.exhaustion)}
