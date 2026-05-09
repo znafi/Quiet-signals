@@ -269,12 +269,16 @@ export default function QuietSignalsApp() {
 
   // ─── Face signal ─────────────────────────────────────────────────────────────
 
-  const handleFaceContinue = (confirmation: SelfConfirmation | null, pts: number) => {
+  const handleFaceContinue = (
+    confirmation: SelfConfirmation | null,
+    pts: number,
+    signalDescription: string | null = null,
+  ) => {
     setSession((s) => ({
       ...s,
       faceSignal: {
         used: true,
-        simulatedSignal: 'possible tension or low energy',
+        simulatedSignal: signalDescription ?? 'low-confidence read',
         selfConfirmation: confirmation,
         supportivePoints: pts,
       },

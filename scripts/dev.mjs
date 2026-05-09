@@ -4,7 +4,8 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const nextBin = require.resolve('next/dist/bin/next')
 
-const next = spawn(process.execPath, [nextBin, 'dev', '--hostname', 'localhost'], {
+const extraArgs = process.argv.slice(2)
+const next = spawn(process.execPath, [nextBin, 'dev', '--hostname', 'localhost', '--webpack', ...extraArgs], {
   stdio: ['inherit', 'pipe', 'pipe'],
 })
 

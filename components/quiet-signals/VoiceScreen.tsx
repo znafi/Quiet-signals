@@ -51,6 +51,8 @@ function WaveForm({ audioLevel }: { audioLevel: number }) {
   )
 }
 
+type PermissionState = 'unknown' | 'prompt' | 'granted' | 'denied'
+
 export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenProps) {
   const [phase, setPhase] = useState<Phase>('permission')
   const [confirmation, setConfirmation] = useState<SelfConfirmation | null>(null)
@@ -58,6 +60,7 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   const [micReady, setMicReady] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [recordingTime, setRecordingTime] = useState(0)
+  const [permissionState, setPermissionState] = useState<PermissionState>('unknown')
   
   const streamRef = useRef<MediaStream | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -65,8 +68,22 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   const animationFrameRef = useRef<number | null>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Check existing permission state on mount so we can show the right UI immediately
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.permissions) return
+    navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
+      setPermissionState(result.state as PermissionState)
+      result.onchange = () => setPermissionState(result.state as PermissionState)
+    }).catch(() => {
+      // Permissions API not supported — proceed normally
+    })
+  }, [])
+
   // Request microphone permission when user clicks Allow
   const requestMicrophonePermission = useCallback(async () => {
+    // If already known to be denied, don't even call getUserMedia — just show instructions
+    if (permissionState === 'denied') return
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -86,40 +103,50 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
       
+      setPermissionState('granted')
       setMicReady(true)
       setPhase('idle')
     } catch (err) {
-      console.error('[v0] Microphone error:', err)
-      if (err instanceof Error) {
-        if (err.name === 'NotAllowedError') {
-          setMicError('Microphone access was denied. Please allow microphone access in your browser settings.')
-        } else if (err.name === 'NotFoundError') {
-          setMicError('No microphone found on this device.')
-        } else {
-          setMicError('Unable to access microphone. Please check your permissions.')
-        }
+      const error = err instanceof Error ? err : new Error(String(err))
+      if (error.name === 'NotAllowedError') {
+        // Stay on the permission screen — just update the state to show instructions
+        console.warn('[microphone] Permission denied by user or browser settings.')
+        setPermissionState('denied')
+      } else if (error.name === 'NotFoundError') {
+        console.warn('[microphone] No microphone device found.')
+        setMicError('No microphone found on this device.')
+        setPhase('idle')
+      } else {
+        console.warn('[microphone] Unexpected error:', error.message)
+        setMicError('Unable to access microphone: ' + error.message)
+        setPhase('idle')
       }
-      setPhase('idle')
+    }
+  }, [permissionState])
+
+  const cleanupMedia = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close()
+      audioContextRef.current = null
     }
   }, [])
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current)
-      }
-    }
-  }, [])
+    return () => cleanupMedia()
+  }, [cleanupMedia])
 
   // Audio level monitoring during recording
   const startAudioMonitoring = useCallback(() => {
@@ -182,44 +209,18 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   }, [stopAudioMonitoring])
 
   const handleContinue = () => {
-    // Stop mic when continuing
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close()
-    }
+    cleanupMedia()
     const pts = confirmation ? getSelfConfirmationPoints(confirmation) : 0
     onContinue(confirmation, pts)
   }
 
   const handleSkip = () => {
-    // Stop mic when skipping
-    stopAudioMonitoring()
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close()
-    }
+    cleanupMedia()
     onSkip()
   }
 
   const handleBack = () => {
-    // Stop mic when going back
-    stopAudioMonitoring()
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close()
-    }
+    cleanupMedia()
     onBack()
   }
 
@@ -262,26 +263,49 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6 w-full max-w-sm"
               >
-                <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
-                  <div className="flex justify-center">
-                    <Mic className="w-10 h-10 text-gold" aria-hidden="true" />
+                {permissionState === 'denied' ? (
+                  /* Blocked by browser — guide user to settings */
+                  <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+                    <div className="flex justify-center">
+                      <AlertCircle className="w-10 h-10 text-terracotta" aria-hidden="true" />
+                    </div>
+                    <div className="space-y-3 text-center">
+                      <h2 className="text-lg font-medium text-foreground">Microphone blocked</h2>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Your browser has blocked microphone access for this site. To fix it:
+                      </p>
+                      <ol className="text-sm text-muted-foreground text-left space-y-1 list-decimal list-inside">
+                        <li>Click the <strong className="text-foreground">lock icon</strong> in the address bar</li>
+                        <li>Set <strong className="text-foreground">Microphone</strong> to <strong className="text-foreground">Allow</strong></li>
+                        <li>Reload the page, then come back here</li>
+                      </ol>
+                    </div>
                   </div>
-                  <div className="space-y-2 text-center">
-                    <h2 className="text-lg font-medium text-foreground">Allow microphone access?</h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      We&apos;d like to use your microphone for the voice reflection. You can skip this step if you prefer.
-                    </p>
+                ) : (
+                  /* Normal prompt state */
+                  <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+                    <div className="flex justify-center">
+                      <Mic className="w-10 h-10 text-gold" aria-hidden="true" />
+                    </div>
+                    <div className="space-y-2 text-center">
+                      <h2 className="text-lg font-medium text-foreground">Allow microphone access?</h2>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        We&apos;d like to use your microphone for the voice reflection. You can skip this step if you prefer.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
+                )}
+
                 <div className="space-y-2">
-                  <button
-                    onClick={requestMicrophonePermission}
-                    className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
-                  >
-                    Allow microphone
-                  </button>
+                  {permissionState !== 'denied' && (
+                    <button
+                      onClick={requestMicrophonePermission}
+                      className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+                    >
+                      Allow microphone
+                    </button>
+                  )}
                   <button
                     onClick={handleSkip}
                     className="w-full py-3 rounded-full text-sm text-muted-foreground hover:text-foreground border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -311,9 +335,10 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
           {phase !== 'permission' && (
             <div className="flex flex-col items-center gap-6">
             {micError ? (
-              <div className="flex flex-col items-center gap-3 p-4 text-center">
-                <AlertCircle className="w-8 h-8 text-terracotta" aria-hidden="true" />
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{micError}</p>
+              <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-3 text-center w-full max-w-sm">
+                <AlertCircle className="w-8 h-8 text-terracotta mx-auto" aria-hidden="true" />
+                <p className="text-sm font-medium text-foreground">Microphone unavailable</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{micError}</p>
               </div>
             ) : (
               <AnimatePresence mode="wait">
@@ -454,21 +479,23 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
           {/* Start / Skip buttons */}
           {phase === 'idle' && (
             <div className="space-y-3">
-              <button
-                onClick={startRecording}
-                disabled={!micReady && !micError}
-                className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
-                aria-label="Start voice reflection recording"
-              >
-                {micReady ? 'Start voice reflection' : micError ? 'Microphone unavailable' : 'Starting microphone...'}
-              </button>
+              {!micError && (
+                <button
+                  onClick={startRecording}
+                  disabled={!micReady}
+                  className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+                  aria-label="Start voice reflection recording"
+                >
+                  {micReady ? 'Start voice reflection' : 'Starting microphone...'}
+                </button>
+              )}
               <button
                 onClick={handleSkip}
                 className="w-full py-3 rounded-full text-sm text-muted-foreground hover:text-foreground border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 aria-label="Skip voice reflection"
               >
-                Skip voice reflection
+                {micError ? 'Continue without microphone' : 'Skip voice reflection'}
               </button>
             </div>
           )}
