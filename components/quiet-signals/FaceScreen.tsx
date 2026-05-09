@@ -189,15 +189,40 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
             )}
           </AnimatePresence>
 
-          {/* Camera preview */}
-          {phase !== 'permission' && (
-            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
-            {cameraError ? (
-              <div className="flex flex-col items-center gap-3 p-4 text-center">
-                <AlertCircle className="w-8 h-8 text-terracotta" aria-hidden="true" />
-                <p className="text-xs text-muted-foreground leading-relaxed">{cameraError}</p>
+          {/* Camera error state */}
+          {phase !== 'permission' && cameraError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6 w-full max-w-sm"
+            >
+              <div className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+                <div className="flex justify-center">
+                  <AlertCircle className="w-10 h-10 text-terracotta" aria-hidden="true" />
+                </div>
+                <div className="space-y-2 text-center">
+                  <h2 className="text-lg font-medium text-foreground">Camera unavailable</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {cameraError}
+                  </p>
+                </div>
               </div>
-            ) : (
+              
+              <div className="space-y-2">
+                <button
+                  onClick={handleSkip}
+                  className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+                >
+                  Continue without camera
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Camera preview */}
+          {phase !== 'permission' && !cameraError && (
+            <div className="relative mx-auto w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
               <>
                 {/* Live video feed */}
                 <video
@@ -286,7 +311,6 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                   )}
                 </AnimatePresence>
               </>
-            )}
           </div>
           )}
 
@@ -340,8 +364,8 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
             )}
           </AnimatePresence>
 
-          {/* Start button (idle) */}
-          {phase === 'idle' && (
+          {/* Start button (idle) - only show if no error */}
+          {phase === 'idle' && !cameraError && (
             <div className="space-y-3">
               <button
                 onClick={startScan}
