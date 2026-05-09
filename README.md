@@ -10,6 +10,24 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 
 ## Getting Started
 
+Create a `.env.local` file with your Firebase web app settings:
+
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+```
+
+Firestore collections used by the app:
+
+- `questions`: scenario documents with `order`, `title`, `scenarioText`, and `questions`.
+- `resources`: result resources with `title`, `description`, optional `url`, optional `signal`, and `order`.
+- `resultMappings`: score band documents with `signal`, `minScore`, `maxScore`, `title`, `description`, and `recommendation`.
+- `userResults`: saved completed quiz results.
+
 First, run the development server:
 
 ```bash

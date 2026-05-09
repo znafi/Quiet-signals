@@ -4,32 +4,13 @@ export type SelfConfirmation = 'yes' | 'somewhat' | 'no' | 'unsure'
 
 export type ReflectionMode = 'camera-and-voice' | 'voice-only' | 'text-only'
 
-export type FinalRoute = 'coaching' | 'therapy' | 'mixed' | ''
+export type BurnoutSignal = 'Low' | 'Moderate' | 'High'
 
 export interface DimensionScores {
-  patternRigidity: number
-  patternRecognition: number
-  reEngagement: number
-  expansionReadiness: number
-  capacityNarrowing: number
-}
-
-export interface CulturalTags {
-  authorityPreservation: number
-  harmonyPreservation: number
-  belongingPressure: number
-  visibilitySafety: number
-  performanceAdaptation: number
-  professionalismAdaptation: number
-  roleConditioning: number
-  conflictConditioning: number
-}
-
-export interface ScenarioCounts {
-  highCapacityNarrowingScenarios: number
-  lowReEngagementScenarios: number
-  shutdownIndicators: number
-  selfWorthIndicators: number
+  exhaustion: number
+  mentalDistancing: number
+  cognitiveImpairment: number
+  emotionalImpairment: number
 }
 
 export interface FaceSignal {
@@ -62,11 +43,11 @@ export interface UserSession {
   voiceSignal: VoiceSignal
   answers: AnswerRecord[]
   dimensionScores: DimensionScores
-  scenarioCounts: ScenarioCounts
-  culturalTags: CulturalTags
-  finalRoute: FinalRoute
+  totalScore: number
+  burnoutSignal: BurnoutSignal | ''
   resultMessage: string
   isDemoMode: boolean
+  resultId?: string
 }
 
 export interface AnswerRecord {
@@ -78,28 +59,48 @@ export interface AnswerRecord {
 // ─── Scenario Data Types ──────────────────────────────────────────────────────
 
 export type DimensionKey = keyof DimensionScores
-export type CulturalTagKey = keyof CulturalTags
 
 export interface AnswerChoice {
   key: string
   text: string
+  description?: string
   scores: Partial<DimensionScores>
-  tags?: CulturalTagKey[]
-  flags?: {
-    shutdownIndicator?: boolean
-    selfWorthIndicator?: boolean
-    lowReEngagement?: boolean
-    highCapacityNarrowingScenario?: boolean
-  }
 }
 
 export interface ScenarioQuestion {
+  dimension: DimensionKey
   question: string
   choices: AnswerChoice[]
 }
 
 export interface Scenario {
+  id?: string
+  order?: number
   title: string
   scenarioText: string
   questions: ScenarioQuestion[]
+}
+
+export interface ResultMapping {
+  signal: BurnoutSignal
+  minScore: number
+  maxScore: number
+  title: string
+  description: string
+  recommendation: string
+}
+
+export interface Resource {
+  id?: string
+  title: string
+  description: string
+  url?: string
+  signal?: BurnoutSignal | 'All'
+  order?: number
+}
+
+export interface QuizContent {
+  questions: Scenario[]
+  resources: Resource[]
+  resultMappings: ResultMapping[]
 }

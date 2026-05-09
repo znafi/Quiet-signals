@@ -2,68 +2,44 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Download, RotateCcw, CheckCircle, ArrowRight, Camera, Mic, FileText } from 'lucide-react'
-import type { UserSession } from '@/lib/quiet-signals/types'
+import { Copy, Download, RotateCcw, CheckCircle, Camera, Mic, FileText, ExternalLink } from 'lucide-react'
+import type { Resource, ResultMapping, UserSession } from '@/lib/quiet-signals/types'
 import {
-  getPatternName,
-  getPatternDescription,
-  getTopCulturalTags,
+  findResultMapping,
   normalizeScore,
   getScoreLevel,
   copyResultSummary,
+  MAX_DIMENSION_SCORE,
+  MAX_TOTAL_SCORE,
 } from '@/lib/quiet-signals/scoring'
 import { useToast } from '@/hooks/use-toast'
 import { Toaster } from '@/components/ui/toaster'
 
 interface ResultsScreenProps {
   session: UserSession
+  resources: Resource[]
+  resultMappings: ResultMapping[]
   onEmailCapture: () => void
   onRestart: () => void
 }
 
 const dimensionLabels: Record<string, string> = {
-  patternRigidity: 'Pattern Rigidity',
-  patternRecognition: 'Pattern Recognition',
-  reEngagement: 'Re-engagement Capacity',
-  expansionReadiness: 'Expansion Readiness',
-  capacityNarrowing: 'Capacity Narrowing',
+  exhaustion: 'Exhaustion',
+  mentalDistancing: 'Mental Distancing',
+  cognitiveImpairment: 'Cognitive Impairment',
+  emotionalImpairment: 'Emotional Impairment',
 }
 
 const dimensionColors: Record<string, string> = {
-  patternRigidity: 'oklch(0.65 0.1 50)',
-  patternRecognition: 'oklch(0.60 0.07 148)',
-  reEngagement: 'oklch(0.62 0.12 70)',
-  expansionReadiness: 'oklch(0.62 0.12 70)',
-  capacityNarrowing: 'oklch(0.62 0.1 46)',
-}
-
-const routeConfig = {
-  coaching: {
-    title: 'Suggested next step: 1:1 Leadership Coaching',
-    message:
-      'Your responses suggest that you may be experiencing repeated leadership pressure patterns, but you also show signs of awareness, reflection, and readiness to respond differently. 1:1 leadership coaching may help you identify what takes over under pressure and expand the behavioral range available to you in real leadership moments.',
-    primaryButton: 'Book a coaching consult',
-    color: 'oklch(0.62 0.12 70)',
-  },
-  therapy: {
-    title: 'Suggested next step: Therapeutic Support',
-    message:
-      'Your responses suggest that some workplace experiences may be carrying a level of emotional strain that goes beyond leadership development alone. Therapeutic support may help strengthen emotional regulation, recovery capacity, and self-trust before or alongside professional growth.',
-    primaryButton: 'Explore therapy support',
-    color: 'oklch(0.60 0.07 148)',
-  },
-  mixed: {
-    title: 'Suggested next step: Coaching with added support',
-    message:
-      'Your responses show both leadership growth potential and signs that certain pressure moments may carry a deeper emotional load. Coaching may be helpful, and therapeutic support may also be worth considering if these patterns feel difficult to recover from or are affecting your wellbeing.',
-    primaryButton: 'Explore coaching',
-    color: 'oklch(0.62 0.12 70)',
-  },
+  exhaustion: 'oklch(0.65 0.1 50)',
+  mentalDistancing: 'oklch(0.60 0.07 148)',
+  cognitiveImpairment: 'oklch(0.62 0.12 70)',
+  emotionalImpairment: 'oklch(0.62 0.1 46)',
 }
 
 function PatternBar({ label, score, max = 16, color }: { label: string; score: number; max?: number; color: string }) {
   const normalized = normalizeScore(score, max)
-  const level = getScoreLevel(normalized)
+  const level = getScoreLevel(score, max)
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
@@ -83,15 +59,12 @@ function PatternBar({ label, score, max = 16, color }: { label: string; score: n
   )
 }
 
-export default function ResultsScreen({ session, onEmailCapture, onRestart }: ResultsScreenProps) {
+export default function ResultsScreen({ session, resources, resultMappings, onEmailCapture, onRestart }: ResultsScreenProps) {
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
-  const patternName = getPatternName(session)
-  const description = getPatternDescription(patternName)
-  const topTags = getTopCulturalTags(session)
-  const route = session.finalRoute || 'coaching'
-  const routeInfo = routeConfig[route as keyof typeof routeConfig] || routeConfig.coaching
+  const resultMapping = findResultMapping(session.totalScore, resultMappings)
+  const signalResources = resources.filter((resource) => !resource.signal || resource.signal === 'All' || resource.signal === session.burnoutSignal)
 
   const handleCopy = async () => {
     const ok = await copyResultSummary(session)
@@ -132,15 +105,18 @@ export default function ResultsScreen({ session, onEmailCapture, onRestart }: Re
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="space-y-1">
           <p className="text-xs tracking-widest uppercase text-gold font-medium">Your Quiet Signals Reflection</p>
           <h1 className="text-4xl md:text-5xl font-light text-foreground text-balance leading-tight" style={{ fontFamily: 'var(--font-cormorant)' }}>
-            {patternName}
+            {resultMapping.title}
           </h1>
+          <p className="text-sm text-muted-foreground">
+            Total score: {session.totalScore} / {MAX_TOTAL_SCORE}
+          </p>
           <div className="w-12 h-px bg-gold mt-3" aria-hidden="true" />
         </motion.div>
 
         {/* What may be happening */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-2">
           <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">What may be happening</h2>
-          <p className="text-sm text-foreground leading-relaxed text-pretty">{description}</p>
+          <p className="text-sm text-foreground leading-relaxed text-pretty">{resultMapping.description}</p>
         </motion.div>
 
         {/* Supportive signals */}
@@ -169,29 +145,30 @@ export default function ResultsScreen({ session, onEmailCapture, onRestart }: Re
               <div className="flex items-start gap-3">
                 <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Camera and voice were skipped. Your result is based on scenario responses only.
+                  Camera and voice signals are coming soon. Your result is based on scenario responses only.
                 </p>
               </div>
             )}
           </div>
         </motion.div>
 
-        {/* Pattern map */}
+        {/* Burnout signal map */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-5">
-          <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Pattern map</h2>
+          <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Burnout signal map</h2>
           <div className="space-y-4" role="list" aria-label="Dimension scores">
             {Object.entries(session.dimensionScores).map(([key, score]) => (
               <div key={key} role="listitem">
                 <PatternBar
                   label={dimensionLabels[key] ?? key}
                   score={score}
+                  max={MAX_DIMENSION_SCORE}
                   color={dimensionColors[key] ?? 'oklch(0.62 0.12 70)'}
                 />
               </div>
             ))}
           </div>
           <div className="flex gap-4 pt-1" aria-label="Score level legend">
-            {['Low', 'Moderate', 'Elevated', 'Strong'].map((l) => (
+            {['Low', 'Moderate', 'High'].map((l) => (
               <span key={l} className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold/40 inline-block" aria-hidden="true" />
                 {l}
@@ -200,92 +177,46 @@ export default function ResultsScreen({ session, onEmailCapture, onRestart }: Re
           </div>
         </motion.div>
 
-        {/* Cultural context tags */}
-        {topTags.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
-            <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Cultural context</h2>
-            <div className="flex flex-wrap gap-2" role="list" aria-label="Cultural context tags">
-              {topTags.map(({ key, label, description: tagDesc }) => (
-                <div
-                  key={key}
-                  role="listitem"
-                  className="group relative"
-                >
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-warm-border bg-secondary text-foreground cursor-default">
-                    {label}
-                  </span>
-                  <div className="absolute bottom-full left-0 mb-2 w-56 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 shadow-lg">
-                    {tagDesc}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2.5 pt-1">
-              {topTags.map(({ key, label, description: tagDesc }) => (
-                <div key={key} className="flex items-start gap-2">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                    style={{ background: 'oklch(0.62 0.12 70)' }}
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <span className="text-xs font-medium text-foreground">{label}:</span>{' '}
-                    <span className="text-xs text-muted-foreground">{tagDesc}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Recommended route */}
+        {/* Recommended support */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
           className="p-6 rounded-2xl border-2 space-y-4"
-          style={{ borderColor: routeInfo.color, background: `${routeInfo.color}08` }}
+          style={{ borderColor: 'oklch(0.62 0.12 70)', background: 'oklch(0.62 0.12 70 / 0.08)' }}
         >
           <div className="space-y-1">
-            <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Suggested pathway</p>
+            <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Suggested support</p>
             <h2 className="text-xl font-medium text-foreground" style={{ fontFamily: 'var(--font-cormorant)' }}>
-              {routeInfo.title}
+              {session.burnoutSignal || resultMapping.signal} burnout signal
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed text-pretty">{routeInfo.message}</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              style={{ background: routeInfo.color, color: 'oklch(0.985 0.004 80)' }}
-              onClick={() => {}}
-              aria-label={routeInfo.primaryButton}
-            >
-              {routeInfo.primaryButton}
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
-            </button>
-            {route === 'mixed' && (
-              <button
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                onClick={() => {}}
-                aria-label="Explore therapy support"
-              >
-                Explore therapy support
-              </button>
-            )}
-            {route === 'therapy' && (
-              <button
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                onClick={onEmailCapture}
-                aria-label="Save my reflection"
-              >
-                Save my reflection
-              </button>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed text-pretty">{resultMapping.recommendation}</p>
           <p className="text-xs text-muted-foreground italic">
             This reflection is not a diagnosis. It is a pattern-based guide to help you consider what kind of support may be useful.
           </p>
         </motion.div>
+
+        {signalResources.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+            <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Resources</h2>
+            <div className="space-y-3">
+              {signalResources.map((resource) => (
+                <div key={resource.id ?? resource.title} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-foreground">{resource.title}</h3>
+                    {resource.url ? (
+                      <a href={resource.url} target="_blank" rel="noreferrer" aria-label={`Open ${resource.title}`}>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
+                      </a>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{resource.description}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Action row */}
         <motion.div

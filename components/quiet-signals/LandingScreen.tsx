@@ -9,8 +9,8 @@ interface LandingScreenProps {
 }
 
 const badges = [
-  { icon: Camera, label: 'Camera optional' },
-  { icon: Mic, label: 'Voice optional' },
+  { icon: Camera, label: 'Camera optional (Coming soon)' },
+  { icon: Mic, label: 'Voice optional (Coming soon)' },
   { icon: Brain, label: 'Low cognitive load' },
   { icon: ChevronRight, label: 'Leadership focused' },
   { icon: Lock, label: 'Private by design' },

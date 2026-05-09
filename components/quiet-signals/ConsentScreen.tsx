@@ -10,18 +10,20 @@ interface ConsentScreenProps {
   onBack: () => void
 }
 
-const modes: { key: ReflectionMode; icon: React.ElementType; title: string; description: string }[] = [
+const modes: { key: ReflectionMode; icon: React.ElementType; title: string; description: string; disabled?: boolean }[] = [
   {
     key: 'camera-and-voice',
     icon: Camera,
-    title: 'Use camera and voice',
-    description: 'Adds optional visual and voice based supportive signals.',
+    title: 'Use camera and voice (Coming soon)',
+    description: 'Optional visual and voice based supportive signals are not available yet.',
+    disabled: true,
   },
   {
     key: 'voice-only',
     icon: Mic,
-    title: 'Use voice only',
-    description: 'Adds a short voice reflection without camera.',
+    title: 'Use voice only (Coming soon)',
+    description: 'A short voice reflection without camera is not available yet.',
+    disabled: true,
   },
   {
     key: 'text-only',
@@ -68,7 +70,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
             </h1>
             <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
             <p className="text-sm text-muted-foreground leading-relaxed text-pretty">
-              Quiet Signals can use optional camera and voice inputs to provide supportive context about your current state. These signals do not diagnose you and do not decide your result on their own. Your scenario responses remain the main part of the reflection.
+              Quiet Signals currently uses scenario responses as the main reflection. Camera and voice inputs are coming soon and will provide optional supportive context only.
             </p>
           </div>
 
@@ -76,21 +78,25 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
           <fieldset>
             <legend className="sr-only">Select your reflection mode</legend>
             <div className="space-y-3">
-              {modes.map(({ key, icon: Icon, title, description }) => {
+              {modes.map(({ key, icon: Icon, title, description, disabled }) => {
                 const isSelected = selectedMode === key
                 return (
                   <motion.button
                     key={key}
-                    onClick={() => setSelectedMode(key)}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.99 }}
+                    onClick={() => !disabled && setSelectedMode(key)}
+                    disabled={disabled}
+                    whileHover={disabled ? {} : { y: -1 }}
+                    whileTap={disabled ? {} : { scale: 0.99 }}
                     className={`w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                       isSelected
                         ? 'border-gold bg-gold/5'
-                        : 'border-warm-border bg-card hover:border-gold/40'
+                        : disabled
+                          ? 'border-warm-border bg-card opacity-60 cursor-not-allowed'
+                          : 'border-warm-border bg-card hover:border-gold/40'
                     }`}
                     role="radio"
                     aria-checked={isSelected}
+                    aria-disabled={disabled}
                     aria-label={`${title}: ${description}`}
                   >
                     <div className="flex items-start gap-3">
@@ -117,7 +123,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
 
           {/* Microcopy */}
           <p className="text-xs text-center text-muted-foreground italic">
-            You can still receive a complete result if you skip camera and voice.
+            You can receive a complete result with text-only scenario responses.
           </p>
 
           {/* Consent checkboxes */}
@@ -125,7 +131,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4">Required acknowledgements</p>
             {[
               { id: 'nonDiag', label: 'I understand this is not a diagnosis.', checked: nonDiag, onChange: setNonDiag },
-              { id: 'supportive', label: 'I understand camera and voice are optional supportive signals.', checked: supportive, onChange: setSupportive },
+              { id: 'supportive', label: 'I understand camera and voice supportive signals are coming soon.', checked: supportive, onChange: setSupportive },
               { id: 'consentGiven', label: 'I consent to continue with the selected reflection mode.', checked: consent, onChange: setConsent },
             ].map(({ id, label, checked, onChange }) => (
               <label key={id} htmlFor={id} className="flex items-start gap-3 cursor-pointer group">

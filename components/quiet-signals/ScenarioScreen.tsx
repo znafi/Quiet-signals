@@ -2,35 +2,48 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Check } from 'lucide-react'
-import { SCENARIOS } from '@/lib/quiet-signals/scenarios'
-import type { AnswerChoice } from '@/lib/quiet-signals/types'
+import { ArrowLeft, Check, Info } from 'lucide-react'
+import type { AnswerChoice, Scenario } from '@/lib/quiet-signals/types'
 
 interface ScenarioScreenProps {
+  scenarios: Scenario[]
   scenarioIndex: number
   questionIndex: number
-  onAnswer: (choice: AnswerChoice) => void
+  onAnswer: (choice: AnswerChoice) => void | Promise<void>
   onBack: () => void
 }
 
-export default function ScenarioScreen({ scenarioIndex, questionIndex, onAnswer, onBack }: ScenarioScreenProps) {
+export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex, onAnswer, onBack }: ScenarioScreenProps) {
   const [selected, setSelected] = useState<string | null>(null)
-  const scenario = SCENARIOS[scenarioIndex]
+  const [expandedInfo, setExpandedInfo] = useState<string | null>(null)
+  const scenario = scenarios[scenarioIndex]
   const question = scenario.questions[questionIndex]
 
-  const totalScenarios = SCENARIOS.length
+  const totalScenarios = scenarios.length
   const totalQuestions = scenario.questions.length
-  const overallStep = SCENARIOS.slice(0, scenarioIndex).reduce((acc, s) => acc + s.questions.length, 0) + questionIndex + 1
-  const overallTotal = SCENARIOS.reduce((acc, s) => acc + s.questions.length, 0)
+  const overallStep = scenarios.slice(0, scenarioIndex).reduce((acc, s) => acc + s.questions.length, 0) + questionIndex + 1
+  const overallTotal = scenarios.reduce((acc, s) => acc + s.questions.length, 0)
   const progressPct = Math.round((overallStep / overallTotal) * 100)
 
   const handleSelect = (key: string) => setSelected(key)
+
+  const handleToggleInfo = (key: string) => {
+    setExpandedInfo((current) => (current === key ? null : key))
+  }
+
+  const handleChoiceKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, key: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleSelect(key)
+    }
+  }
 
   const handleContinue = () => {
     if (!selected) return
     const choice = question.choices.find((c) => c.key === selected)
     if (choice) {
       setSelected(null)
+      setExpandedInfo(null)
       onAnswer(choice)
     }
   }
@@ -111,10 +124,13 @@ export default function ScenarioScreen({ scenarioIndex, questionIndex, onAnswer,
               <div className="space-y-2.5">
                 {question.choices.map((choice) => {
                   const isSelected = selected === choice.key
+                  const isInfoExpanded = expandedInfo === choice.key
+                  const infoId = `choice-info-${scenarioIndex}-${questionIndex}-${choice.key}`
                   return (
-                    <motion.button
+                    <motion.div
                       key={choice.key}
                       onClick={() => handleSelect(choice.key)}
+                      onKeyDown={(event) => handleChoiceKeyDown(event, choice.key)}
                       whileHover={{ x: 2 }}
                       whileTap={{ scale: 0.99 }}
                       className={`w-full p-4 rounded-2xl border-2 text-left transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
@@ -124,7 +140,8 @@ export default function ScenarioScreen({ scenarioIndex, questionIndex, onAnswer,
                       }`}
                       role="radio"
                       aria-checked={isSelected}
-                      aria-label={choice.text}
+                      aria-describedby={isInfoExpanded ? infoId : undefined}
+                      tabIndex={0}
                     >
                       <div className="flex items-start gap-3">
                         <div
@@ -135,9 +152,42 @@ export default function ScenarioScreen({ scenarioIndex, questionIndex, onAnswer,
                         >
                           {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                         </div>
-                        <span className="text-sm text-foreground leading-relaxed">{choice.text}</span>
+                        <span className="flex-1 text-left text-sm text-foreground leading-relaxed">
+                          {choice.text}
+                        </span>
+                        {choice.description ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              handleToggleInfo(choice.key)
+                            }}
+                            className="w-8 h-8 rounded-full border border-warm-border flex items-center justify-center flex-shrink-0 text-muted-foreground hover:text-foreground hover:border-gold/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                            aria-label={`${isInfoExpanded ? 'Hide' : 'Show'} more context for option ${choice.key}`}
+                            aria-expanded={isInfoExpanded}
+                            aria-controls={infoId}
+                          >
+                            <Info className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        ) : null}
                       </div>
-                    </motion.button>
+                      {choice.description ? (
+                        <AnimatePresence initial={false}>
+                          {isInfoExpanded && (
+                            <motion.p
+                              id={infoId}
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2, ease: 'easeOut' }}
+                              className="overflow-hidden pl-9 pr-10 pt-3 text-xs text-muted-foreground leading-relaxed"
+                            >
+                              {choice.description}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      ) : null}
+                    </motion.div>
                   )
                 })}
               </div>

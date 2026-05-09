@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { UserSession, ReflectionMode, SelfConfirmation, AnswerChoice } from '@/lib/quiet-signals/types'
+import type { UserSession, ReflectionMode, SelfConfirmation, AnswerChoice, QuizContent } from '@/lib/quiet-signals/types'
 import {
   createDefaultSession,
   applyAnswerScore,
-  calculateFinalRoute,
+  finalizeSession,
   runDemoProfile,
 } from '@/lib/quiet-signals/scoring'
-import { SCENARIOS } from '@/lib/quiet-signals/scenarios'
+import { DEFAULT_QUIZ_CONTENT } from '@/lib/quiet-signals/scenarios'
+import { getQuizContent, saveUserResult } from '@/lib/quiet-signals/firestore'
 
 import LandingScreen from './LandingScreen'
 import PathwayScreen from './PathwayScreen'
@@ -54,12 +55,30 @@ function PageTransition({ children, screenKey }: { children: React.ReactNode; sc
 export default function QuietSignalsApp() {
   const [screen, setScreen] = useState<Screen>('landing')
   const [session, setSession] = useState<UserSession>(createDefaultSession())
+  const [quizContent, setQuizContent] = useState<QuizContent>(DEFAULT_QUIZ_CONTENT)
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(true)
   const [scenarioIndex, setScenarioIndex] = useState(0)
   const [questionIndex, setQuestionIndex] = useState(0)
 
   // ─── Navigation helpers ──────────────────────────────────────────────────────
 
   const goTo = (s: Screen) => setScreen(s)
+
+  useEffect(() => {
+    let isMounted = true
+
+    getQuizContent()
+      .then((content) => {
+        if (isMounted) setQuizContent(content)
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingQuiz(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const restart = useCallback(() => {
     setSession(createDefaultSession())
@@ -149,17 +168,28 @@ export default function QuietSignalsApp() {
 
   // ─── Scenario answers ─────────────────────────────────────────────────────────
 
-  const handleAnswer = (choice: AnswerChoice) => {
-    const updatedSession = applyAnswerScore(session, choice)
+  const handleAnswer = async (choice: AnswerChoice) => {
+    const scoredSession = applyAnswerScore(session, choice)
+    const updatedSession = {
+      ...scoredSession,
+      answers: [
+        ...scoredSession.answers,
+        {
+          scenarioIndex,
+          questionIndex,
+          choiceKey: choice.key,
+        },
+      ],
+    }
 
-    const scenario = SCENARIOS[scenarioIndex]
+    const scenario = quizContent.questions[scenarioIndex]
     const isLastQuestion = questionIndex >= scenario.questions.length - 1
-    const isLastScenario = scenarioIndex >= SCENARIOS.length - 1
+    const isLastScenario = scenarioIndex >= quizContent.questions.length - 1
 
     if (isLastQuestion && isLastScenario) {
-      // Done — calculate route
-      const route = calculateFinalRoute(updatedSession)
-      setSession({ ...updatedSession, finalRoute: route })
+      const finalizedSession = finalizeSession(updatedSession, quizContent.resultMappings)
+      const resultId = await saveUserResult(finalizedSession)
+      setSession(resultId ? { ...finalizedSession, resultId } : finalizedSession)
       goTo('processing')
     } else if (isLastQuestion) {
       setSession(updatedSession)
@@ -175,7 +205,7 @@ export default function QuietSignalsApp() {
     if (questionIndex > 0) {
       setQuestionIndex((q) => q - 1)
     } else if (scenarioIndex > 0) {
-      const prevScenario = SCENARIOS[scenarioIndex - 1]
+      const prevScenario = quizContent.questions[scenarioIndex - 1]
       setScenarioIndex((i) => i - 1)
       setQuestionIndex(prevScenario.questions.length - 1)
     } else {
@@ -246,12 +276,17 @@ export default function QuietSignalsApp() {
 
       {screen === 'scenario' && (
         <PageTransition screenKey={`scenario-${scenarioIndex}-${questionIndex}`}>
-          <ScenarioScreen
-            scenarioIndex={scenarioIndex}
-            questionIndex={questionIndex}
-            onAnswer={handleAnswer}
-            onBack={handleScenarioBack}
-          />
+          {isLoadingQuiz ? (
+            <ProcessingScreen onComplete={() => {}} />
+          ) : (
+            <ScenarioScreen
+              scenarios={quizContent.questions}
+              scenarioIndex={scenarioIndex}
+              questionIndex={questionIndex}
+              onAnswer={handleAnswer}
+              onBack={handleScenarioBack}
+            />
+          )}
         </PageTransition>
       )}
 
@@ -265,6 +300,8 @@ export default function QuietSignalsApp() {
         <PageTransition screenKey="results">
           <ResultsScreen
             session={session}
+            resources={quizContent.resources}
+            resultMappings={quizContent.resultMappings}
             onEmailCapture={() => goTo('email')}
             onRestart={restart}
           />

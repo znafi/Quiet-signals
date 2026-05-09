@@ -17,8 +17,8 @@ const features = [
   },
   {
     icon: Waves,
-    title: 'Optional supportive signals',
-    body: 'Camera and voice reflections provide context only and never diagnose or decide the result alone.',
+    title: 'Optional supportive signals (Coming soon)',
+    body: 'Camera and voice reflections are coming soon. They will provide context only and will never diagnose or decide the result alone.',
     color: 'oklch(0.60 0.07 148)',
   },
   {
@@ -82,7 +82,7 @@ export default function HowItWorksScreen({ onBack, onRunDemo }: HowItWorksScreen
           </h1>
           <div className="w-12 h-px bg-gold" aria-hidden="true" />
           <p className="text-sm text-muted-foreground leading-relaxed text-pretty max-w-lg">
-            Quiet Signals is a multimodal leadership pressure reflection tool that uses scenario-based pattern recognition as its core evaluation engine. Optional face and voice inputs provide supportive context only.
+            Quiet Signals uses scenario-based pattern recognition as its core evaluation engine. Optional face and voice inputs are coming soon and will provide supportive context only.
           </p>
         </motion.div>
 
@@ -125,9 +125,9 @@ export default function HowItWorksScreen({ onBack, onRunDemo }: HowItWorksScreen
           <div className="space-y-3">
             {[
               { label: 'Scenario-based responses', weight: 70 },
-              { label: 'Self-confirmation after face reflection', weight: 15 },
-              { label: 'Voice-based supportive reflection', weight: 10 },
-              { label: 'Face-based supportive reflection', weight: 5 },
+              { label: 'Self-confirmation after face reflection (Coming soon)', weight: 15 },
+              { label: 'Voice-based supportive reflection (Coming soon)', weight: 10 },
+              { label: 'Face-based supportive reflection (Coming soon)', weight: 5 },
             ].map(({ label, weight }) => (
               <div key={label} className="space-y-1">
                 <div className="flex justify-between text-xs">
@@ -208,7 +208,7 @@ export default function HowItWorksScreen({ onBack, onRunDemo }: HowItWorksScreen
           className="p-5 rounded-2xl bg-secondary border border-warm-border"
         >
           <p className="text-xs text-muted-foreground leading-relaxed text-center">
-            Quiet Signals does not store sensitive data, does not analyze camera or voice in the current prototype, and camera and voice signals are optional and supportive only. This reflection is not a diagnosis.
+            Quiet Signals does not store sensitive data and does not analyze camera or voice in the current prototype. Camera and voice signals are coming soon and will be optional supportive signals only. This reflection is not a diagnosis.
           </p>
         </motion.div>
       </div>
