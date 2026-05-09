@@ -65,9 +65,22 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
   const [outcome, setOutcome] = useState<AnalysisOutcome | null>(null)
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set())
 
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Callback ref: wires the stream the instant any <video> element mounts.
+  const videoCallbackRef = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el
+    if (!el || !streamRef.current) return
+    if (el.srcObject !== streamRef.current) {
+      el.srcObject = streamRef.current
+      el.play().catch(err => console.warn('[camera] play error:', err))
+    }
+    const handle = () => setCameraReady(true)
+    el.onloadedmetadata = handle
+    if (el.readyState >= 1) handle()
+  }, [])
 
   const {
     status: landmarkerStatus,
@@ -120,23 +133,12 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
     }
   }, [permissionState])
 
-  /* ──────────────── wire stream to video + start live preview ───────────── */
+  /* ── Start live-preview loop when we enter prescan ─────────────────────── */
 
   useEffect(() => {
-    if (phase !== 'prescan' || !streamRef.current || !videoRef.current) return
-    const video = videoRef.current
-    if (video.srcObject !== streamRef.current) {
-      video.srcObject = streamRef.current
-      video.play().catch(err => console.warn('[camera] play error:', err))
-    }
-    const handle = () => setCameraReady(true)
-    video.onloadedmetadata = handle
-    if (video.readyState >= 1) handle()
-
-    // Start the live-preview loop so meters animate during pre-scan.
+    if (phase !== 'prescan') return
     startLivePreview().catch(() => { /* surfaced via landmarkerError */ })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
+  }, [phase, startLivePreview])
 
   /* ──────────────────────────────── cleanup ─────────────────────────────── */
 
@@ -336,7 +338,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
               ) : landmarkerError ? (
                 /* Model failed — still show video, explain gracefully */
                 <div className="space-y-4">
-                  <VideoBox videoRef={videoRef} phase="prescan" faceDetected={false} />
+                  <VideoBox videoCallbackRef={videoCallbackRef} phase="prescan" faceDetected={false} />
                   <div className="p-4 rounded-2xl bg-card border border-warm-border space-y-1 text-center max-w-sm mx-auto">
                     <p className="text-sm font-medium text-foreground">On-device analyzer unavailable</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
@@ -349,7 +351,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                 <div className="flex flex-col lg:flex-row items-start gap-6 justify-center">
                   {/* Video + face-detection badge */}
                   <div className="flex flex-col items-center gap-3 shrink-0">
-                    <VideoBox videoRef={videoRef} phase="prescan" faceDetected={liveSnapshot.faceDetected} />
+                    <VideoBox videoCallbackRef={videoCallbackRef} phase="prescan" faceDetected={liveSnapshot.faceDetected} />
 
                     {/* Face status */}
                     <motion.div
@@ -461,7 +463,7 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
               {/* Video with scanning rings */}
               <div className="relative w-64 h-64 rounded-3xl bg-card border-2 border-warm-border overflow-hidden flex items-center justify-center">
                 <video
-                  ref={videoRef}
+                  ref={videoCallbackRef}
                   autoPlay playsInline muted
                   width={256} height={256}
                   className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
@@ -590,18 +592,18 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
 /* ────────────────────────────────────────────────────────────────────────── */
 
 function VideoBox({
-  videoRef,
+  videoCallbackRef,
   phase,
   faceDetected,
 }: {
-  videoRef: React.RefObject<HTMLVideoElement | null>
+  videoCallbackRef: (el: HTMLVideoElement | null) => void
   phase: string
   faceDetected: boolean
 }) {
   return (
     <div className="relative w-56 h-56 rounded-3xl bg-card border-2 border-warm-border overflow-hidden">
       <video
-        ref={videoRef}
+        ref={videoCallbackRef}
         autoPlay playsInline muted
         width={224} height={224}
         className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
