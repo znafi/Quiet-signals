@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertTriangle, Download, RotateCcw, Camera, Mic, FileText, ExternalLink } from 'lucide-react'
+import { AlertTriangle, Download, RotateCcw, Camera, Mic, FileText } from 'lucide-react'
 import quietSignalsLogo from '@/components/ui/image.png'
-import type { Resource, ResultMapping, UserSession } from '@/lib/quiet-signals/types'
+import type { BurnoutSignal, Resource, ResultMapping, UserSession } from '@/lib/quiet-signals/types'
 import {
   findResultMapping,
   normalizeScore,
@@ -29,17 +29,50 @@ const dimensionLabels: Record<string, string> = {
   emotionalImpairment: 'Emotional Impairment',
 }
 
+interface SupportPlan {
+  heading: string
+  focus: string
+  summary: string
+}
+
+function getSupportPlan(signal: BurnoutSignal): SupportPlan {
+  if (signal === 'High') {
+    return {
+      heading: 'Therapy-focused support',
+      focus: 'Therapy',
+      summary:
+        'A stronger burnout signal may benefit from therapy-led support: structured space with a licensed professional to work through sustained strain, recovery barriers, and patterns that feel hard to shift alone.',
+    }
+  }
+
+  if (signal === 'Moderate') {
+    return {
+      heading: 'Counselling and therapy blend',
+      focus: 'Counselling + therapy',
+      summary:
+        'A moderate burnout signal may call for a balanced mix: counselling for reflection, boundaries, and practical coping, with therapy added if the pressure feels persistent, emotionally heavy, or difficult to unwind.',
+    }
+  }
+
+  return {
+    heading: 'Counselling-focused support',
+    focus: 'Counselling',
+    summary:
+      'A lower burnout signal may be well matched with counselling: a reflective, supportive space to protect what is working, strengthen recovery routines, and notice early signs before they build.',
+  }
+}
+
 // Level-based color scale: Low=green, Moderate=amber, High=red
 function levelColor(level: string): string {
-  if (level === 'High') return 'oklch(0.55 0.17 25)'
-  if (level === 'Moderate') return 'oklch(0.65 0.13 60)'
-  return 'oklch(0.60 0.10 148)'
+  if (level === 'High') return 'oklch(0.56 0.10 28)'
+  if (level === 'Moderate') return 'oklch(0.64 0.09 58)'
+  return 'oklch(0.58 0.06 148)'
 }
 
 function levelColorPdf(level: string): string {
-  if (level === 'High') return '#b83030'
-  if (level === 'Moderate') return '#b48a35'
-  return '#4e8a5a'
+  if (level === 'High') return '#9c5a51'
+  if (level === 'Moderate') return '#9a7946'
+  return '#68866d'
 }
 
 const quietSignalsLogoSrc = typeof quietSignalsLogo === 'string' ? quietSignalsLogo : quietSignalsLogo.src
@@ -58,17 +91,16 @@ function buildPdfHtml({
   resultTitle,
   summary,
   recommendation,
-  resources,
+  supportHeading,
   logoSrc,
 }: {
   session: UserSession
   resultTitle: string
   summary: string
   recommendation: string
-  resources: Resource[]
+  supportHeading: string
   logoSrc: string
 }): string {
-  const signal = session.burnoutSignal || 'Burnout'
   const generatedAt = new Intl.DateTimeFormat('en', {
     year: 'numeric',
     month: 'long',
@@ -105,20 +137,6 @@ function buildPdfHtml({
       `
     })
     .join('')
-  const resourceItems = resources.length
-    ? resources
-        .map(
-          (resource) => `
-            <div class="resource">
-              <h3>${escapeHtml(resource.title)}</h3>
-              <p>${escapeHtml(resource.description)}</p>
-              ${resource.url ? `<p class="resource-url">${escapeHtml(resource.url)}</p>` : ''}
-            </div>
-          `
-        )
-        .join('')
-    : ''
-
   return `<!doctype html>
 <html>
   <head>
@@ -305,12 +323,10 @@ function buildPdfHtml({
 
       <section class="card support-card">
         <h2>Suggested support</h2>
-        <h3>${escapeHtml(signal)} burnout signal</h3>
+        <h3>${escapeHtml(supportHeading)}</h3>
         <p>${escapeHtml(recommendation)}</p>
         <p class="footer">This reflection is not a diagnosis. It is a pattern-based guide to help you consider what kind of support may be useful.</p>
       </section>
-
-      ${resourceItems ? `<section class="card"><h2>Resources</h2>${resourceItems}</section>` : ''}
 
       <p class="footer">Quiet Signals — Leadership Reflection Tool</p>
     </main>
@@ -346,14 +362,15 @@ function PatternBar({ label, score, max = 16 }: { label: string; score: number; 
   )
 }
 
-export default function ResultsScreen({ session, resources, resultMappings, saveError, onRestart }: ResultsScreenProps) {
+export default function ResultsScreen({ session, resultMappings, saveError, onRestart }: ResultsScreenProps) {
   const [personalizedSummary, setPersonalizedSummary] = useState<string | null>(null)
   const [isSummaryLoading, setIsSummaryLoading] = useState(false)
   const { toast } = useToast()
 
   const resultMapping = findResultMapping(session.totalScore, resultMappings)
-  const signalResources = resources.filter((resource) => !resource.signal || resource.signal === 'All' || resource.signal === session.burnoutSignal)
   const summaryText = personalizedSummary || resultMapping.description
+  const burnoutSignal = session.burnoutSignal || resultMapping.signal
+  const supportPlan = getSupportPlan(burnoutSignal)
 
   useEffect(() => {
     let isMounted = true
@@ -409,8 +426,8 @@ export default function ResultsScreen({ session, resources, resultMappings, save
         session,
         resultTitle: resultMapping.title,
         summary: summaryText,
-        recommendation: resultMapping.recommendation,
-        resources: signalResources,
+        recommendation: supportPlan.summary,
+        supportHeading: supportPlan.heading,
         logoSrc: quietSignalsLogoSrc,
       })
     )
@@ -544,35 +561,18 @@ export default function ResultsScreen({ session, resources, resultMappings, save
           <div className="space-y-1">
             <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Suggested support</p>
             <h2 className="text-xl font-medium text-foreground" style={{ fontFamily: 'var(--font-cormorant)' }}>
-              {session.burnoutSignal || resultMapping.signal} burnout signal
+              {supportPlan.heading}
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed text-pretty">{resultMapping.recommendation}</p>
+          <div className="rounded-xl border border-warm-border bg-card/70 p-4 space-y-2">
+            <p className="text-[11px] font-medium tracking-widest uppercase text-gold">Primary fit</p>
+            <p className="text-sm font-medium text-foreground">{supportPlan.focus}</p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed text-pretty">{supportPlan.summary}</p>
           <p className="text-xs text-muted-foreground italic">
             This reflection is not a diagnosis. It is a pattern-based guide to help you consider what kind of support may be useful.
           </p>
         </motion.div>
-
-        {signalResources.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
-            <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Resources</h2>
-            <div className="space-y-3">
-              {signalResources.map((resource) => (
-                <div key={resource.id ?? resource.title} className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-foreground">{resource.title}</h3>
-                    {resource.url ? (
-                      <a href={resource.url} target="_blank" rel="noreferrer" aria-label={`Open ${resource.title}`}>
-                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
-                      </a>
-                    ) : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{resource.description}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
 
         {/* Action row */}
         <motion.div

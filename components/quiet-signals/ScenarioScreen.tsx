@@ -1,9 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Image, { type StaticImageData } from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Check, Info } from 'lucide-react'
 import type { AnswerChoice, Scenario } from '@/lib/quiet-signals/types'
+import meetingImage from '@/components/ui/meeting.png'
+import morningImage from '@/components/ui/morning.png'
+import urgentTaskImage from '@/components/ui/urgenttask.png'
 
 interface ScenarioScreenProps {
   scenarios: Scenario[]
@@ -13,11 +17,48 @@ interface ScenarioScreenProps {
   onBack: () => void
 }
 
+interface ScenarioIllustration {
+  src: StaticImageData
+  alt: string
+}
+
+const scenarioIllustrations: Record<string, ScenarioIllustration> = {
+  'scenario-1': {
+    src: morningImage,
+    alt: 'Illustration of a worker arriving at a desk on Monday morning with coffee and a computer.',
+  },
+  'Monday morning': {
+    src: morningImage,
+    alt: 'Illustration of a worker arriving at a desk on Monday morning with coffee and a computer.',
+  },
+  'scenario-2': {
+    src: urgentTaskImage,
+    alt: 'Illustration of a worker looking at an urgent message from their manager with a deadline icon.',
+  },
+  'Urgent task': {
+    src: urgentTaskImage,
+    alt: 'Illustration of a worker looking at an urgent message from their manager with a deadline icon.',
+  },
+  'scenario-3': {
+    src: meetingImage,
+    alt: 'Illustration of coworkers in a team meeting discussing a project update.',
+  },
+  'Team meeting': {
+    src: meetingImage,
+    alt: 'Illustration of coworkers in a team meeting discussing a project update.',
+  },
+}
+
+function getScenarioIllustration(scenario: Scenario) {
+  return (scenario.id ? scenarioIllustrations[scenario.id] : undefined) ?? scenarioIllustrations[scenario.title]
+}
+
 export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex, onAnswer, onBack }: ScenarioScreenProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const [expandedInfo, setExpandedInfo] = useState<string | null>(null)
   const scenario = scenarios[scenarioIndex]
   const question = scenario.questions[questionIndex]
+  const scenarioIllustration = getScenarioIllustration(scenario)
 
   const totalScenarios = scenarios.length
   const totalQuestions = scenario.questions.length
@@ -89,9 +130,21 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
             transition={{ duration: 0.35, ease: 'easeOut' }}
             className="flex flex-col gap-6 h-full"
           >
-            {/* Scenario title (first question only) */}
-            {questionIndex === 0 && (
-              <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-2">
+            {/* Scenario context */}
+            <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-4 overflow-hidden">
+              {scenarioIllustration ? (
+                <div className="-mx-5 -mt-5 mb-1 border-b border-warm-border bg-sand/40">
+                  <Image
+                    src={scenarioIllustration.src}
+                    alt={scenarioIllustration.alt}
+                    placeholder="blur"
+                    sizes="(min-width: 768px) 640px, calc(100vw - 48px)"
+                    className="h-auto w-full max-h-[280px] object-cover object-center"
+                    priority={scenarioIndex === 1}
+                  />
+                </div>
+              ) : null}
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-medium tracking-widest uppercase text-gold">Scenario {scenarioIndex + 1}</span>
                 </div>
@@ -105,7 +158,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
                   {scenario.scenarioText}
                 </p>
               </div>
-            )}
+            </div>
 
             {/* Question */}
             <div className="space-y-1">
