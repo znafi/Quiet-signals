@@ -16,6 +16,7 @@ import {
   FACE_ANALYSIS_CONFIG,
 } from '@/lib/quiet-signals/face-analysis'
 import { useFaceLandmarker } from '@/hooks/useFaceLandmarker'
+import { useAccessibility } from '@/hooks/useAccessibility'
 
 interface FaceScreenProps {
   onContinue: (
@@ -56,6 +57,7 @@ interface AnalysisOutcome {
 }
 
 export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenProps) {
+  const { effectiveCalm } = useAccessibility()
   const [phase, setPhase] = useState<Phase>('permission')
   const [countdown, setCountdown] = useState<number>(FACE_ANALYSIS_CONFIG.windowSeconds)
   const [confirmation, setConfirmation] = useState<SelfConfirmation | null>(null)
@@ -222,7 +224,9 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
   /* ───────────────────────────── derived state ───────────────────────────── */
 
   const usable = outcome?.quality.usable ?? false
-  const showConfirmation = outcome != null && usable && outcome.result.level !== 'low'
+  // Show the confirmation question for ALL usable reads (including 'low'),
+  // so the user's self-assessment is always captured and reflected in the score.
+  const showConfirmation = outcome != null && usable
   const faceReady = liveSnapshot.faceDetected && cameraReady
   const modelLoading = landmarkerStatus === 'loading'
 
@@ -470,18 +474,26 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
                   aria-label="Camera feed"
                 />
 
-                {/* Pulsing rings */}
+                {/* Pulsing rings — replaced with a static ring in calm mode */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {[0, 1, 2].map(i => (
-                    <motion.div
-                      key={i}
-                      className="absolute rounded-full border border-gold/50"
-                      style={{ width: 88 + i * 36, height: 88 + i * 36 }}
-                      animate={{ scale: [1, 1.07, 1], opacity: [0.3, 0.8, 0.3] }}
-                      transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.35, ease: 'easeInOut' }}
+                  {effectiveCalm ? (
+                    <div
+                      className="absolute rounded-full border border-gold/40"
+                      style={{ width: 124, height: 124 }}
                       aria-hidden="true"
                     />
-                  ))}
+                  ) : (
+                    [0, 1, 2].map(i => (
+                      <motion.div
+                        key={i}
+                        className="absolute rounded-full border border-gold/50"
+                        style={{ width: 88 + i * 36, height: 88 + i * 36 }}
+                        animate={{ scale: [1, 1.07, 1], opacity: [0.3, 0.8, 0.3] }}
+                        transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.35, ease: 'easeInOut' }}
+                        aria-hidden="true"
+                      />
+                    ))
+                  )}
                 </div>
 
                 {/* Face tracking dot */}

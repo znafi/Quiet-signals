@@ -41,7 +41,7 @@ function getSupportPlan(signal: BurnoutSignal): SupportPlan {
       heading: 'Therapy-focused support',
       focus: 'Therapy',
       summary:
-        'A stronger burnout signal may benefit from therapy-led support: structured space with a licensed professional to work through sustained strain, recovery barriers, and patterns that feel hard to shift alone.',
+        'A stronger pressure pattern may benefit from therapy-led support: structured space with a licensed professional to work through sustained strain, recovery barriers, and patterns that feel hard to shift alone.',
     }
   }
 
@@ -50,7 +50,7 @@ function getSupportPlan(signal: BurnoutSignal): SupportPlan {
       heading: 'Counselling and therapy blend',
       focus: 'Counselling + therapy',
       summary:
-        'A moderate burnout signal may call for a balanced mix: counselling for reflection, boundaries, and practical coping, with therapy added if the pressure feels persistent, emotionally heavy, or difficult to unwind.',
+        'A moderate pressure pattern may call for a balanced mix: counselling for reflection, boundaries, and practical coping, with therapy added if the pressure feels persistent, emotionally heavy, or difficult to unwind.',
     }
   }
 
@@ -58,7 +58,7 @@ function getSupportPlan(signal: BurnoutSignal): SupportPlan {
     heading: 'Counselling-focused support',
     focus: 'Counselling',
     summary:
-      'A lower burnout signal may be well matched with counselling: a reflective, supportive space to protect what is working, strengthen recovery routines, and notice early signs before they build.',
+      'A lighter pressure pattern may be well matched with counselling: a reflective, supportive space to protect what is working, strengthen recovery routines, and notice early signs before they build.',
   }
 }
 
@@ -343,13 +343,30 @@ function PatternBar({ label, score, max = 16 }: { label: string; score: number; 
   const normalized = normalizeScore(score, max)
   const level = getScoreLevel(score, max)
   const color = levelColor(level)
+  // Use a 'High' textual marker (▲), 'Moderate' (●), 'Low' (●○) to convey level
+  // without relying solely on color. Screen readers receive the level via aria.
+  const shape = level === 'High' ? '▲' : level === 'Moderate' ? '●' : '○'
   return (
-    <div className="space-y-1.5">
+    <div
+      className="space-y-1.5"
+      role="group"
+      aria-label={`${label}: ${level} pattern, ${normalized}% of the scale`}
+    >
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground font-medium">{label}</span>
-        <span className="font-medium" style={{ color }}>{level}</span>
+        <span className="flex items-center gap-1.5 font-medium" style={{ color }}>
+          <span aria-hidden="true">{shape}</span>
+          {level}
+        </span>
       </div>
-      <div className="h-2.5 w-full bg-secondary rounded-full overflow-hidden">
+      <div
+        className="h-2.5 w-full bg-secondary rounded-full overflow-hidden"
+        role="progressbar"
+        aria-label={`${label} ${level}`}
+        aria-valuenow={normalized}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <motion.div
           className="h-full rounded-full"
           style={{ background: color }}
@@ -485,11 +502,18 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
         ) : null}
 
         {/* What may be happening */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-2">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="p-6 rounded-2xl bg-card border border-warm-border space-y-2"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">What may be happening</h2>
           <p className="text-sm text-foreground leading-relaxed text-pretty">{summaryText}</p>
           {isSummaryLoading ? (
-            <p className="text-xs text-muted-foreground">Creating a personalized summary...</p>
+            <p className="text-xs text-muted-foreground">Preparing a personalised summary…</p>
           ) : null}
         </motion.div>
 
@@ -526,9 +550,9 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
           </div>
         </motion.div>
 
-        {/* Burnout signal map */}
+        {/* Quiet Signals Map */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-5">
-          <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Burnout signal map</h2>
+          <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Quiet Signals Map</h2>
           <div className="space-y-4" role="list" aria-label="Dimension signal patterns">
             {Object.entries(session.dimensionScores).map(([key, score]) => (
               <div key={key} role="listitem">
@@ -540,14 +564,35 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
               </div>
             ))}
           </div>
-          <div className="flex gap-4 pt-1" aria-label="Signal level legend">
+
+          {/* Plain-text readout — does not rely on the visual bars */}
+          <div className="rounded-xl border border-warm-border bg-background/40 p-4 space-y-2">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Plain-text summary</p>
+            <ul className="space-y-1 text-sm text-foreground">
+              {Object.entries(session.dimensionScores).map(([key, score]) => {
+                const level = getScoreLevel(score, MAX_DIMENSION_SCORE)
+                return (
+                  <li key={key} className="flex flex-wrap items-center gap-x-2">
+                    <span className="text-muted-foreground">{dimensionLabels[key] ?? key}:</span>
+                    <span className="font-medium" style={{ color: levelColor(level) }}>{level}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          <div className="flex flex-wrap gap-3 pt-1" aria-label="Signal level legend">
             {(['Low', 'Moderate', 'High'] as const).map((l) => (
               <span key={l} className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: levelColor(l) }} aria-hidden="true" />
+                <span aria-hidden="true">{l === 'High' ? '▲' : l === 'Moderate' ? '●' : '○'}</span>
                 {l}
               </span>
             ))}
           </div>
+          <p className="text-[11px] text-muted-foreground italic">
+            This map is a pattern-based reflection, not a diagnosis.
+          </p>
         </motion.div>
 
         {/* Recommended support */}
@@ -570,7 +615,7 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed text-pretty">{supportPlan.summary}</p>
           <p className="text-xs text-muted-foreground italic">
-            This reflection is not a diagnosis. It is a pattern-based guide to help you consider what kind of support may be useful.
+            This is not a diagnosis. It is a pattern-based reflection to help you consider what kind of support may feel useful right now.
           </p>
         </motion.div>
 

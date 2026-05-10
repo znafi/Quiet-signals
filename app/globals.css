@@ -153,3 +153,100 @@
 .animate-signal-wave {
   animation: signal-wave 1.5s ease-in-out infinite;
 }
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/*  Accessibility: visible focus everywhere                                    */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/*  Accessibility: Larger Text (modifier on <html>)                            */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.qs-larger {
+  font-size: 112.5%; /* nudges all rem-based sizes up ~12% */
+}
+.qs-larger body {
+  letter-spacing: 0.005em;
+}
+.qs-larger button,
+.qs-larger [role='radio'],
+.qs-larger [role='button'],
+.qs-larger label,
+.qs-larger input,
+.qs-larger textarea {
+  min-height: 44px;
+}
+.qs-larger .text-xs { font-size: 0.85rem; line-height: 1.25rem; }
+.qs-larger .text-sm { font-size: 1rem; line-height: 1.55rem; }
+.qs-larger .text-base { font-size: 1.1rem; line-height: 1.7rem; }
+.qs-larger p, .qs-larger li {
+  line-height: 1.7;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/*  Accessibility: High Contrast (modifier on <html>)                          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.qs-high-contrast {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.12 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.30 0.02 60);
+  --border: oklch(0.30 0 0);
+  --input: oklch(0.30 0 0);
+  --warm-border: oklch(0.30 0 0);
+  --ring: oklch(0.45 0.20 70);
+  --primary: oklch(0.45 0.20 70);
+  --gold: oklch(0.45 0.20 70);
+  --secondary: oklch(0.95 0 0);
+}
+.qs-high-contrast :focus-visible {
+  outline-width: 3px;
+  outline-color: oklch(0.30 0.25 70);
+}
+.qs-high-contrast .text-muted-foreground {
+  color: oklch(0.25 0.02 60);
+}
+.qs-high-contrast button,
+.qs-high-contrast [role='radio'],
+.qs-high-contrast [role='button'] {
+  border-width: 2px;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/*  Accessibility: Calm Experience (manual or prefers-reduced-motion)          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.qs-calm *,
+.qs-calm *::before,
+.qs-calm *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.12s !important;
+  scroll-behavior: auto !important;
+}
+.qs-calm .qs-calm-hide,
+.qs-calm [data-calm-hide='true'] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.12s !important;
+    scroll-behavior: auto !important;
+  }
+  [data-calm-hide='true'] {
+    display: none !important;
+  }
+}

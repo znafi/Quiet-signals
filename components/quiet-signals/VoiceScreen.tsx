@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Mic, AlertCircle, CheckCircle2, Circle } from 'lucide-react'
+import { ArrowLeft, Mic, AlertCircle, CheckCircle2, Circle, Keyboard } from 'lucide-react'
 import type { SelfConfirmation } from '@/lib/quiet-signals/types'
 import { getSelfConfirmationPoints } from '@/lib/quiet-signals/scoring'
 import {
@@ -16,6 +16,7 @@ import {
   VOICE_ANALYSIS_CONFIG,
 } from '@/lib/quiet-signals/voice-analysis'
 import { useVoiceAnalyzer } from '@/hooks/useVoiceAnalyzer'
+import { useAccessibility } from '@/hooks/useAccessibility'
 
 interface VoiceScreenProps {
   onContinue: (
@@ -31,8 +32,9 @@ interface VoiceScreenProps {
 //   permission → ask for mic access
 //   prescan   → live meters + mic check, user adjusts environment
 //   recording → clean view with countdown, actual analysis
+//   typed     → user chose to type a reflection instead of speaking
 //   result    → classifier output + optional confirmation
-type Phase = 'permission' | 'prescan' | 'recording' | 'result'
+type Phase = 'permission' | 'prescan' | 'recording' | 'typed' | 'result'
 type PermissionState = 'unknown' | 'prompt' | 'granted' | 'denied'
 
 const confirmationOptions: { key: SelfConfirmation; label: string }[] = [
@@ -55,6 +57,7 @@ interface VoiceOutcome {
 }
 
 export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenProps) {
+  const { effectiveCalm } = useAccessibility()
   const [phase, setPhase] = useState<Phase>('permission')
   const [countdown, setCountdown] = useState<number>(VOICE_ANALYSIS_CONFIG.recordingSeconds)
   const [confirmation, setConfirmation] = useState<SelfConfirmation | null>(null)
@@ -63,6 +66,7 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   const [permissionState, setPermissionState] = useState<PermissionState>('unknown')
   const [outcome, setOutcome] = useState<VoiceOutcome | null>(null)
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set())
+  const [typedReflection, setTypedReflection] = useState('')
 
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -199,6 +203,14 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   const handleSkip = () => { teardown(); onSkip() }
   const handleBack = () => { teardown(); onBack() }
 
+  /** "Type instead" alternative: no audio analysed, user reflects in writing. */
+  const handleTypedSubmit = () => {
+    teardown()
+    // We treat a typed reflection as a completed reflection without supportive
+    // voice points — the scenario answers remain the source of the score.
+    onContinue(null, 0, null)
+  }
+
   const toggleCheck = (id: string) =>
     setCheckedItems(prev => {
       const next = new Set(prev)
@@ -209,7 +221,7 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
   /* ─────────────────────────── derived state ─────────────────────────────── */
 
   const usable = outcome?.quality.usable ?? false
-  const showConfirmation = outcome != null && usable && outcome.result.level !== 'low'
+  const showConfirmation = outcome != null && usable
   const elapsed = VOICE_ANALYSIS_CONFIG.recordingSeconds - countdown
   const canFinishEarly = elapsed >= VOICE_ANALYSIS_CONFIG.minRecordingSeconds
 
@@ -286,6 +298,13 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
                       Allow microphone
                     </button>
                   )}
+                  <button
+                    onClick={() => setPhase('typed')}
+                    className="w-full py-3 rounded-full text-sm font-medium border-2 border-gold/60 text-foreground hover:bg-gold/5 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center gap-2"
+                  >
+                    <Keyboard className="w-4 h-4" aria-hidden="true" />
+                    Type instead
+                  </button>
                   <button
                     onClick={handleSkip}
                     className="w-full py-3 rounded-full text-sm text-muted-foreground hover:text-foreground border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -447,11 +466,11 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
                 </p>
               </div>
 
-              {/* Mic orb with pulsing rings */}
-              <MicOrb energy={liveSnapshot.energy} isSpeaking={liveSnapshot.isSpeaking} showRings />
+              {/* Mic orb with pulsing rings — rings drop in calm mode */}
+              <MicOrb energy={liveSnapshot.energy} isSpeaking={liveSnapshot.isSpeaking} showRings={!effectiveCalm} />
 
-              {/* Waveform */}
-              <WaveForm energy={liveSnapshot.energy} />
+              {/* Waveform — hidden in calm mode to reduce motion */}
+              {!effectiveCalm && <WaveForm energy={liveSnapshot.energy} />}
 
               {/* Countdown + speech status */}
               <div className="flex flex-col items-center gap-2">
@@ -466,18 +485,14 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
                     {liveSnapshot.isSpeaking ? 'Listening…' : 'Waiting for speech…'}
                   </span>
                 </div>
-                <motion.span
-                  key={countdown}
+                <span
                   className="text-2xl font-light text-gold tabular-nums"
                   style={{ fontFamily: 'var(--font-cormorant)' }}
-                  initial={{ scale: 1.3, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.25 }}
                   aria-live="polite"
                   aria-label={`${countdown} seconds remaining`}
                 >
                   {countdown}s
-                </motion.span>
+                </span>
               </div>
 
               {/* Early finish */}
@@ -498,6 +513,62 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
               >
                 Cancel
               </button>
+            </motion.div>
+          )}
+
+          {/* ── TYPED REFLECTION (alternative to speaking) ── */}
+          {phase === 'typed' && (
+            <motion.div
+              key="typed"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="w-full max-w-md mx-auto space-y-5"
+            >
+              <div className="text-center space-y-2">
+                <h1 className="text-4xl md:text-5xl font-light text-foreground" style={{ fontFamily: 'var(--font-cormorant)' }}>
+                  Type your reflection
+                </h1>
+                <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                  No microphone needed. Your written reflection stays on this device and is not analysed for voice patterns.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-3">
+                <label htmlFor="typed-reflection" className="block text-sm font-medium text-foreground">
+                  Describe one workplace moment recently that stayed with you.
+                </label>
+                <textarea
+                  id="typed-reflection"
+                  value={typedReflection}
+                  onChange={(e) => setTypedReflection(e.target.value)}
+                  rows={6}
+                  maxLength={1500}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-warm-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold transition-colors resize-none"
+                  placeholder="Take a few breaths, then write whatever comes to mind…"
+                  aria-describedby="typed-reflection-help"
+                />
+                <p id="typed-reflection-help" className="text-[11px] text-muted-foreground/70">
+                  Optional. {typedReflection.trim().length} characters.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={handleTypedSubmit}
+                  className="w-full py-4 rounded-full text-sm font-medium tracking-wide transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
+                >
+                  Continue with my written reflection
+                </button>
+                <button
+                  onClick={() => setPhase('permission')}
+                  className="w-full py-3 rounded-full text-sm text-muted-foreground hover:text-foreground border border-warm-border hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  Back to voice options
+                </button>
+              </div>
             </motion.div>
           )}
 

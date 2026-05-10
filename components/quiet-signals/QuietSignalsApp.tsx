@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import type { UserSession, ReflectionMode, SelfConfirmation, AnswerChoice, QuizContent, UserContactInfo } from '@/lib/quiet-signals/types'
 
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/lib/quiet-signals/scoring'
 import { DEFAULT_QUIZ_CONTENT } from '@/lib/quiet-signals/scenarios'
 import { getQuizContent, saveUserResult } from '@/lib/quiet-signals/firestore'
+import { AccessibilityProvider, useAccessibility } from '@/hooks/useAccessibility'
 import LandingScreen from './LandingScreen'
 import PathwayScreen from './PathwayScreen'
 import ConsentScreen from './ConsentScreen'
@@ -57,6 +58,15 @@ function PageTransition({ children, screenKey }: { children: React.ReactNode; sc
 
 
 export default function QuietSignalsApp() {
+  return (
+    <AccessibilityProvider>
+      <QuietSignalsAppInner />
+    </AccessibilityProvider>
+  )
+}
+
+function QuietSignalsAppInner() {
+  const { effectiveCalm } = useAccessibility()
   const [screen, setScreen] = useState<Screen>('landing')
   const [session, setSession] = useState<UserSession>(createDefaultSession())
   const [quizContent, setQuizContent] = useState<QuizContent>(DEFAULT_QUIZ_CONTENT)
@@ -259,8 +269,31 @@ export default function QuietSignalsApp() {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
+  // Friendly screen labels so a single live region can announce navigation.
+  const screenLabels: Record<Screen, string> = {
+    landing: 'Landing screen',
+    pathway: 'Pathway selection',
+    consent: 'Reflection mode and accessibility options',
+    face: 'Optional camera reflection',
+    voice: 'Optional voice reflection',
+    scenario: 'Scenario reflection',
+    processing: 'Reading your reflection',
+    'email-capture': 'Email capture before your report',
+    results: 'Your reflection results',
+    'how-it-works': 'How Quiet Signals works',
+    contact: 'Contact form',
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <MotionConfig reducedMotion={effectiveCalm ? 'always' : 'user'}>
+      <div className="min-h-screen bg-background">
+        <p
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {screenLabels[screen]}
+        </p>
       {screen === 'landing' && (
         <PageTransition screenKey="landing">
           <LandingScreen
@@ -363,6 +396,7 @@ export default function QuietSignalsApp() {
           />
         </PageTransition>
       )}
-    </div>
+      </div>
+    </MotionConfig>
   )
 }

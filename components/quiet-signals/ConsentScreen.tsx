@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Mic, FileText, ArrowLeft, Check, Sparkles } from 'lucide-react'
 import type { ReflectionMode } from '@/lib/quiet-signals/types'
+import { useAccessibility } from '@/hooks/useAccessibility'
+import AccessibilityPanel from './AccessibilityPanel'
 
 interface ConsentScreenProps {
   onContinue: (mode: ReflectionMode) => void
@@ -45,10 +47,24 @@ const modes: {
 ]
 
 export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps) {
-  const [selectedMode, setSelectedMode] = useState<ReflectionMode | null>(null)
+  const a11y = useAccessibility()
+  const [selectedMode, setSelectedMode] = useState<ReflectionMode | null>(
+    a11y.textOnly ? 'text-only' : null,
+  )
   const [nonDiag, setNonDiag] = useState(false)
   const [supportive, setSupportive] = useState(false)
   const [consent, setConsent] = useState(false)
+
+  // Text-Only Reflection toggle locks the mode to text-only and disables others.
+  useEffect(() => {
+    if (a11y.textOnly && selectedMode !== 'text-only') {
+      setSelectedMode('text-only')
+    }
+  }, [a11y.textOnly, selectedMode])
+
+  const handleTextOnlyChange = (enabled: boolean) => {
+    if (enabled) setSelectedMode('text-only')
+  }
 
   const canContinue = selectedMode !== null && nonDiag && supportive && consent
 
@@ -105,26 +121,33 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
           {/* Optional signal modes */}
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground text-center">
-              Optionally add on-device supportive signals for a richer reflection.
+              {a11y.textOnly
+                ? 'Text Only Reflection is on. Camera and voice are skipped.'
+                : 'Optionally add on-device supportive signals for a richer reflection.'}
             </p>
             <fieldset>
               <legend className="sr-only">Select additional signals</legend>
-              <div className="space-y-2.5">
+              <div className="space-y-2.5" role="radiogroup" aria-label="Optional signal modes">
                 {modes.map(({ key, icon: Icon, title, description, badge }) => {
                   const isSelected = selectedMode === key
+                  const isDisabled = a11y.textOnly && key !== 'text-only'
                   return (
                     <motion.button
                       key={key}
-                      onClick={() => setSelectedMode(key)}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.99 }}
+                      onClick={() => !isDisabled && setSelectedMode(key)}
+                      whileHover={!isDisabled ? { y: -1 } : undefined}
+                      whileTap={!isDisabled ? { scale: 0.99 } : undefined}
+                      disabled={isDisabled}
                       className={`w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                         isSelected
                           ? 'border-gold bg-gold/5'
-                          : 'border-warm-border bg-card hover:border-gold/40'
+                          : isDisabled
+                            ? 'border-warm-border bg-secondary/40 opacity-50 cursor-not-allowed'
+                            : 'border-warm-border bg-card hover:border-gold/40'
                       }`}
                       role="radio"
                       aria-checked={isSelected}
+                      aria-disabled={isDisabled}
                       aria-label={`${title}: ${description}`}
                     >
                       <div className="flex items-start gap-3">
@@ -132,11 +155,16 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
                           <Icon className={`w-4 h-4 ${isSelected ? 'text-gold' : 'text-muted-foreground'}`} aria-hidden="true" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium text-foreground">{title}</span>
                             {badge && (
                               <span className="text-[9px] uppercase tracking-widest font-medium text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
                                 {badge}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <span className="text-[9px] uppercase tracking-widest font-medium text-foreground bg-foreground/10 px-1.5 py-0.5 rounded-full">
+                                Selected
                               </span>
                             )}
                           </div>
@@ -154,6 +182,9 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
               </div>
             </fieldset>
           </div>
+
+          {/* Accessibility options panel */}
+          <AccessibilityPanel onTextOnlyChange={handleTextOnlyChange} />
 
           {/* Consent checkboxes */}
           <div className="space-y-3 p-5 rounded-2xl bg-card border border-warm-border">
@@ -186,6 +217,13 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
               </label>
             ))}
           </div>
+
+          {/* Safety wording */}
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside leading-relaxed">
+            <li>This is not a diagnosis.</li>
+            <li>Camera and voice are optional supportive signals.</li>
+            <li>You can complete the reflection without camera or voice.</li>
+          </ul>
 
           {/* Continue button */}
           <motion.button

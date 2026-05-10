@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAccessibility } from '@/hooks/useAccessibility'
 
 interface ProcessingScreenProps {
   onComplete: () => void
@@ -15,9 +16,13 @@ const lines = [
 ]
 
 export default function ProcessingScreen({ onComplete }: ProcessingScreenProps) {
+  const { effectiveCalm } = useAccessibility()
   const [lineIndex, setLineIndex] = useState(0)
 
   useEffect(() => {
+    // Calm mode lengthens each step a little so it feels paced, never rushed.
+    const stepMs = effectiveCalm ? 1300 : 1000
+    const tailMs = effectiveCalm ? 600 : 800
     let i = 0
     const interval = setInterval(() => {
       i += 1
@@ -25,11 +30,11 @@ export default function ProcessingScreen({ onComplete }: ProcessingScreenProps) 
         setLineIndex(i)
       } else {
         clearInterval(interval)
-        setTimeout(onComplete, 800)
+        setTimeout(onComplete, tailMs)
       }
-    }, 1000)
+    }, stepMs)
     return () => clearInterval(interval)
-  }, [onComplete])
+  }, [onComplete, effectiveCalm])
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-background px-6" role="main" aria-live="polite" aria-label="Processing your reflection">
@@ -39,9 +44,9 @@ export default function ProcessingScreen({ onComplete }: ProcessingScreenProps) 
         transition={{ duration: 0.6 }}
         className="flex flex-col items-center gap-12 max-w-sm w-full text-center"
       >
-        {/* Animated signal orb */}
+        {/* Signal orb — pulses are dropped in calm/reduced-motion mode */}
         <div className="relative w-40 h-40 flex items-center justify-center" aria-hidden="true">
-          {[1, 2, 3, 4].map((i) => (
+          {!effectiveCalm && [1, 2, 3, 4].map((i) => (
             <motion.div
               key={i}
               className="absolute rounded-full border border-gold/20"
@@ -58,6 +63,12 @@ export default function ProcessingScreen({ onComplete }: ProcessingScreenProps) 
               }}
             />
           ))}
+          {effectiveCalm && (
+            <div
+              className="absolute rounded-full border border-gold/30"
+              style={{ width: 96, height: 96 }}
+            />
+          )}
           {/* Core */}
           <motion.div
             className="w-12 h-12 rounded-full z-10 flex items-center justify-center"
@@ -92,8 +103,12 @@ export default function ProcessingScreen({ onComplete }: ProcessingScreenProps) 
             Reading the quiet signals…
           </h1>
 
-          {/* Rotating lines */}
-          <div className="h-8 flex items-center justify-center overflow-hidden">
+          {/* Rotating lines — polite live region for screen readers */}
+          <div
+            className="h-8 flex items-center justify-center overflow-hidden"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             <AnimatePresence mode="wait">
               <motion.p
                 key={lineIndex}
