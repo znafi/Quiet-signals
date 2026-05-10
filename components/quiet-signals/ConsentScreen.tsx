@@ -121,7 +121,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
           </div>
 
           {/* Optional signal modes */}
-          <div className="space-y-2">
+          <div data-guide-target="reflection-options" className="space-y-2">
             <p className="text-xs text-muted-foreground text-center">
               {a11y.textOnly
                 ? 'Text Only Reflection is on. Camera and voice are skipped.'
@@ -186,10 +186,12 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
           </div>
 
           {/* Accessibility options panel */}
-          <AccessibilityPanel onTextOnlyChange={handleTextOnlyChange} />
+          <div data-guide-target="accessibility-panel">
+            <AccessibilityPanel onTextOnlyChange={handleTextOnlyChange} />
+          </div>
 
           {/* Consent checkboxes */}
-          <div className="space-y-3 p-5 rounded-2xl bg-card border border-warm-border">
+          <div data-guide-target="consent" className="space-y-3 p-5 rounded-2xl bg-card border border-warm-border">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Required acknowledgements</p>
               <button

@@ -46,7 +46,7 @@ export default function PathwayScreen({ onSelectIndividual, onBack }: PathwayScr
               <div className="w-10 h-px bg-gold mx-auto mt-3" aria-hidden="true" />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div data-guide-target="pathway-options" className="grid gap-4 sm:grid-cols-2">
               {/* Individual card */}
               <motion.button
                 onClick={onSelectIndividual}

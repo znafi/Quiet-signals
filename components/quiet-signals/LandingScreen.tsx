@@ -100,6 +100,7 @@ export default function LandingScreen({ onStart, onHowItWorks, onContactUs }: La
           className="mt-8 space-y-2"
         >
           <h1
+            data-guide-target="landing-title"
             className="text-5xl md:text-7xl font-light tracking-tight text-foreground text-balance leading-tight"
             style={{ fontFamily: 'var(--font-cormorant)', letterSpacing: '-0.01em' }}
           >

@@ -13,6 +13,7 @@ import {
 import { DEFAULT_QUIZ_CONTENT } from '@/lib/quiet-signals/scenarios'
 import { getQuizContent, saveUserResult } from '@/lib/quiet-signals/firestore'
 import { AccessibilityProvider, useAccessibility } from '@/hooks/useAccessibility'
+import QuietGuide from './QuietGuide'
 import LandingScreen from './LandingScreen'
 import PathwayScreen from './PathwayScreen'
 import ConsentScreen from './ConsentScreen'
@@ -396,6 +397,27 @@ function QuietSignalsAppInner() {
           />
         </PageTransition>
       )}
+
+      {/* Accessibility guide overlay — present across every screen */}
+      <QuietGuide
+        screen={screen}
+        scenario={
+          screen === 'scenario' && quizContent.questions[scenarioIndex]
+            ? {
+                title: quizContent.questions[scenarioIndex].title,
+                scenarioText: quizContent.questions[scenarioIndex].scenarioText,
+              }
+            : null
+        }
+        question={
+          screen === 'scenario' && quizContent.questions[scenarioIndex]?.questions[questionIndex]
+            ? {
+                question: quizContent.questions[scenarioIndex].questions[questionIndex].question,
+                choices: quizContent.questions[scenarioIndex].questions[questionIndex].choices,
+              }
+            : null
+        }
+      />
       </div>
     </MotionConfig>
   )

@@ -477,7 +477,7 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
 
       <div className="max-w-2xl mx-auto px-6 md:px-10 py-10 space-y-8">
         {/* Title */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="space-y-1">
+        <motion.div data-guide-target="result-pattern" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="space-y-1">
           <p className="text-xs tracking-widest uppercase text-gold font-medium">Your Quiet Signals Reflection</p>
           <h1 className="text-4xl md:text-5xl font-light text-foreground text-balance leading-tight" style={{ fontFamily: 'var(--font-cormorant)' }}>
             {resultMapping.title}
@@ -518,7 +518,7 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
         </motion.div>
 
         {/* Supportive signals */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
+        <motion.div data-guide-target="supportive-signals" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-4">
           <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Supportive signals</h2>
           <div className="space-y-3">
             {session.faceSignal.used ? (
@@ -551,7 +551,7 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
         </motion.div>
 
         {/* Quiet Signals Map */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-5">
+        <motion.div data-guide-target="signal-map" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="p-6 rounded-2xl bg-card border border-warm-border space-y-5">
           <h2 className="text-xs font-medium tracking-widest uppercase text-muted-foreground">Quiet Signals Map</h2>
           <div className="space-y-4" role="list" aria-label="Dimension signal patterns">
             {Object.entries(session.dimensionScores).map(([key, score]) => (
@@ -597,6 +597,7 @@ export default function ResultsScreen({ session, resultMappings, saveError, onRe
 
         {/* Recommended support */}
         <motion.div
+          data-guide-target="next-step"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}

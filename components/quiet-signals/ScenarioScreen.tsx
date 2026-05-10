@@ -161,7 +161,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
             </div>
 
             {/* Question */}
-            <div className="space-y-1">
+            <div data-guide-target="scenario-question" className="space-y-1">
               <p className="text-xs text-muted-foreground italic">There are no right or wrong answers.</p>
               <h3
                 className="text-2xl md:text-[1.75rem] font-light text-foreground leading-snug"
@@ -174,7 +174,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
             {/* Answer choices */}
             <fieldset className="flex-1">
               <legend className="sr-only">{question.question}</legend>
-              <div className="space-y-2.5">
+              <div data-guide-target="scenario-answers" className="space-y-2.5">
                 {question.choices.map((choice) => {
                   const isSelected = selected === choice.key
                   const isInfoExpanded = expandedInfo === choice.key
@@ -248,6 +248,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
 
             {/* Continue */}
             <motion.button
+              data-guide-target="continue-button"
               onClick={handleContinue}
               disabled={!selected}
               whileHover={selected ? { scale: 1.01 } : {}}

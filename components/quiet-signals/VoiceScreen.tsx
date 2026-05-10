@@ -240,7 +240,10 @@ export default function VoiceScreen({ onContinue, onSkip, onBack }: VoiceScreenP
         </button>
       </div>
 
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-2xl mx-auto w-full">
+      <section
+        data-guide-target="voice-check"
+        className="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-2xl mx-auto w-full"
+      >
         <AnimatePresence mode="wait">
 
           {/* ── PERMISSION ── */}

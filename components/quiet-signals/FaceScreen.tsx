@@ -246,7 +246,10 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
         </button>
       </div>
 
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-2xl mx-auto w-full">
+      <section
+        data-guide-target="camera-check"
+        className="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-2xl mx-auto w-full"
+      >
         <AnimatePresence mode="wait">
 
           {/* ── PERMISSION ── */}
