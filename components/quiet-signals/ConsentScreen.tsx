@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, Mic, FileText, ArrowLeft, Check } from 'lucide-react'
+import { Camera, Mic, FileText, ArrowLeft, Check, Sparkles } from 'lucide-react'
 import type { ReflectionMode } from '@/lib/quiet-signals/types'
 
 interface ConsentScreenProps {
@@ -10,24 +10,37 @@ interface ConsentScreenProps {
   onBack: () => void
 }
 
-const modes: { key: ReflectionMode; icon: React.ElementType; title: string; description: string; disabled?: boolean }[] = [
+const modes: {
+  key: ReflectionMode
+  icon: React.ElementType
+  title: string
+  description: string
+  badge?: string
+}[] = [
   {
     key: 'camera-and-voice',
+    icon: Sparkles,
+    title: 'Add camera & voice signals',
+    description: 'Visual and vocal pattern analysis for the most complete reflection.',
+    badge: 'Recommended',
+  },
+  {
+    key: 'camera-only',
     icon: Camera,
-    title: 'Use camera and voice',
-    description: 'Add optional visual and voice based supportive signals before the scenarios.',
+    title: 'Add camera signal only',
+    description: 'On-device facial pattern analysis without voice.',
   },
   {
     key: 'voice-only',
     icon: Mic,
-    title: 'Use voice only',
-    description: 'Add a short voice reflection without camera before the scenarios.',
+    title: 'Add voice signal only',
+    description: 'On-device vocal pattern analysis without camera.',
   },
   {
     key: 'text-only',
     icon: FileText,
-    title: 'Skip and continue with text only',
-    description: 'Complete the full reflection using scenario responses only.',
+    title: 'Continue with scenarios only',
+    description: 'Skip optional signals and reflect through scenarios alone.',
   },
 ]
 
@@ -67,69 +80,87 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
               Choose how you want to reflect
             </h1>
             <div className="w-10 h-px bg-gold mx-auto" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground leading-relaxed text-pretty">
-              Quiet Signals uses scenario responses as the main reflection. Camera and voice inputs provide optional supportive context only.
-            </p>
           </div>
 
-          {/* Mode cards */}
-          <fieldset>
-            <legend className="sr-only">Select your reflection mode</legend>
-            <div className="space-y-3">
-              {modes.map(({ key, icon: Icon, title, description, disabled }) => {
-                const isSelected = selectedMode === key
-                return (
-                  <motion.button
-                    key={key}
-                    onClick={() => !disabled && setSelectedMode(key)}
-                    disabled={disabled}
-                    whileHover={disabled ? {} : { y: -1 }}
-                    whileTap={disabled ? {} : { scale: 0.99 }}
-                    className={`w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      isSelected
-                        ? 'border-gold bg-gold/5'
-                        : disabled
-                          ? 'border-warm-border bg-card opacity-60 cursor-not-allowed'
-                          : 'border-warm-border bg-card hover:border-gold/40'
-                    }`}
-                    role="radio"
-                    aria-checked={isSelected}
-                    aria-disabled={disabled}
-                    aria-label={`${title}: ${description}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${isSelected ? 'bg-gold/15' : 'bg-secondary'}`}>
-                        <Icon className={`w-4 h-4 ${isSelected ? 'text-gold' : 'text-muted-foreground'}`} aria-hidden="true" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-foreground">{title}</span>
-                          {isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-gold flex items-center justify-center flex-shrink-0" aria-hidden="true">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
-                      </div>
-                    </div>
-                  </motion.button>
-                )
-              })}
+          {/* Always-included text assessment banner */}
+          <div className="p-4 rounded-2xl bg-gold/5 border border-gold/20">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gold/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <FileText className="w-4 h-4 text-gold" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Scenario-based assessment</p>
+                <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                  Always included. You&apos;ll respond to workplace scenarios that form the core of your reflection.
+                </p>
+              </div>
+              <div className="ml-auto flex-shrink-0">
+                <span className="text-[10px] uppercase tracking-widest text-gold font-medium bg-gold/10 px-2 py-1 rounded-full">
+                  Included
+                </span>
+              </div>
             </div>
-          </fieldset>
+          </div>
 
-          {/* Microcopy */}
-          <p className="text-xs text-center text-muted-foreground italic">
-            You can receive a complete result with text-only scenario responses.
-          </p>
+          {/* Optional signal modes */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground text-center">
+              Optionally add on-device supportive signals for a richer reflection.
+            </p>
+            <fieldset>
+              <legend className="sr-only">Select additional signals</legend>
+              <div className="space-y-2.5">
+                {modes.map(({ key, icon: Icon, title, description, badge }) => {
+                  const isSelected = selectedMode === key
+                  return (
+                    <motion.button
+                      key={key}
+                      onClick={() => setSelectedMode(key)}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.99 }}
+                      className={`w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                        isSelected
+                          ? 'border-gold bg-gold/5'
+                          : 'border-warm-border bg-card hover:border-gold/40'
+                      }`}
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${title}: ${description}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${isSelected ? 'bg-gold/15' : 'bg-secondary'}`}>
+                          <Icon className={`w-4 h-4 ${isSelected ? 'text-gold' : 'text-muted-foreground'}`} aria-hidden="true" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">{title}</span>
+                            {badge && (
+                              <span className="text-[9px] uppercase tracking-widest font-medium text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
+                                {badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-gold flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </fieldset>
+          </div>
 
           {/* Consent checkboxes */}
           <div className="space-y-3 p-5 rounded-2xl bg-card border border-warm-border">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4">Required acknowledgements</p>
             {[
               { id: 'nonDiag', label: 'I understand this is not a diagnosis.', checked: nonDiag, onChange: setNonDiag },
-              { id: 'supportive', label: 'I understand camera and voice supportive signals are optional context only.', checked: supportive, onChange: setSupportive },
+              { id: 'supportive', label: 'I understand camera and voice signals are optional supportive context only.', checked: supportive, onChange: setSupportive },
               { id: 'consentGiven', label: 'I consent to continue with the selected reflection mode.', checked: consent, onChange: setConsent },
             ].map(({ id, label, checked, onChange }) => (
               <label key={id} htmlFor={id} className="flex items-start gap-3 cursor-pointer group">

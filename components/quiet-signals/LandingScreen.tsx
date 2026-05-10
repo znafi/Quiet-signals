@@ -6,6 +6,7 @@ import { Shield, Mic, Camera, Brain, Lock, ChevronRight } from 'lucide-react'
 interface LandingScreenProps {
   onStart: () => void
   onHowItWorks: () => void
+  onContactUs: () => void
 }
 
 const badges = [
@@ -57,7 +58,7 @@ function SignalOrb() {
   )
 }
 
-export default function LandingScreen({ onStart, onHowItWorks }: LandingScreenProps) {
+export default function LandingScreen({ onStart, onHowItWorks, onContactUs }: LandingScreenProps) {
   return (
     <main className="min-h-screen flex flex-col bg-background" role="main">
       {/* Header */}
@@ -70,15 +71,15 @@ export default function LandingScreen({ onStart, onHowItWorks }: LandingScreenPr
             aria-hidden="true"
           />
           <span className="text-sm font-medium tracking-widest uppercase text-muted-foreground" style={{ fontFamily: 'var(--font-inter)' }}>
-            Urban Consciousness
+            Quiet Signals
           </span>
         </div>
         <button
-          onClick={onHowItWorks}
+          onClick={onContactUs}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
-          aria-label="See how Quiet Signals works"
+          aria-label="Contact Quiet Signals"
         >
-          How it works
+          Contact us
         </button>
       </header>
 
@@ -203,7 +204,7 @@ export default function LandingScreen({ onStart, onHowItWorks }: LandingScreenPr
       {/* Footer */}
       <footer className="text-center py-6 px-6">
         <p className="text-xs text-muted-foreground">
-          Quiet Signals is a non-diagnostic leadership reflection prototype created for natIgnite 2026 AccessTech.
+          Quiet Signals is a non-diagnostic leadership reflection prototype.
         </p>
       </footer>
     </main>

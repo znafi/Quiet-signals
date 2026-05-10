@@ -2,7 +2,7 @@
 
 export type SelfConfirmation = 'yes' | 'somewhat' | 'no' | 'unsure'
 
-export type ReflectionMode = 'camera-and-voice' | 'voice-only' | 'text-only'
+export type ReflectionMode = 'camera-and-voice' | 'camera-only' | 'voice-only' | 'text-only'
 
 export type BurnoutSignal = 'Low' | 'Moderate' | 'High'
 

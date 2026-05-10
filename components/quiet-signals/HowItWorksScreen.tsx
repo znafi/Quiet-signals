@@ -73,7 +73,7 @@ export default function HowItWorksScreen({ onBack, onRunDemo }: HowItWorksScreen
           transition={{ duration: 0.5 }}
           className="space-y-3"
         >
-          <p className="text-xs tracking-widest uppercase text-gold font-medium">natIgnite 2026 AccessTech</p>
+          <p className="text-xs tracking-widest uppercase text-gold font-medium">Leadership Reflection Tool</p>
           <h1
             className="text-4xl md:text-5xl font-light text-foreground text-balance"
             style={{ fontFamily: 'var(--font-cormorant)' }}

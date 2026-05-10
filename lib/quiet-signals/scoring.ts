@@ -141,7 +141,7 @@ Signal Pattern:
 - Emotional Impairment: ${getScoreLevel(d.emotionalImpairment)}
 
 This reflection is not a diagnosis. It is a pattern-based guide to help you consider what kind of support may be useful.
-Quiet Signals — Urban Consciousness / natIgnite 2026 AccessTech`
+Quiet Signals — Leadership Reflection Tool`
 }
 
 export function runDemoProfile(

@@ -29,18 +29,17 @@ const dimensionLabels: Record<string, string> = {
   emotionalImpairment: 'Emotional Impairment',
 }
 
-const dimensionColors: Record<string, string> = {
-  exhaustion: 'oklch(0.65 0.1 50)',
-  mentalDistancing: 'oklch(0.60 0.07 148)',
-  cognitiveImpairment: 'oklch(0.62 0.12 70)',
-  emotionalImpairment: 'oklch(0.62 0.1 46)',
+// Level-based color scale: Low=green, Moderate=amber, High=red
+function levelColor(level: string): string {
+  if (level === 'High') return 'oklch(0.55 0.17 25)'
+  if (level === 'Moderate') return 'oklch(0.65 0.13 60)'
+  return 'oklch(0.60 0.10 148)'
 }
 
-const pdfBarColors: Record<string, string> = {
-  exhaustion: '#b1764d',
-  mentalDistancing: '#6f8d69',
-  cognitiveImpairment: '#b48a35',
-  emotionalImpairment: '#aa694a',
+function levelColorPdf(level: string): string {
+  if (level === 'High') return '#b83030'
+  if (level === 'Moderate') return '#b48a35'
+  return '#4e8a5a'
 }
 
 const quietSignalsLogoSrc = typeof quietSignalsLogo === 'string' ? quietSignalsLogo : quietSignalsLogo.src
@@ -91,7 +90,7 @@ function buildPdfHtml({
       const width = normalizeScore(score, MAX_DIMENSION_SCORE)
       const label = dimensionLabels[key] ?? key
       const level = getScoreLevel(score, MAX_DIMENSION_SCORE)
-      const color = pdfBarColors[key] ?? '#b48a35'
+      const color = levelColorPdf(level)
 
       return `
         <div class="bar-row">
@@ -313,7 +312,7 @@ function buildPdfHtml({
 
       ${resourceItems ? `<section class="card"><h2>Resources</h2>${resourceItems}</section>` : ''}
 
-      <p class="footer">Quiet Signals - Urban Consciousness / natIgnite 2026 AccessTech</p>
+      <p class="footer">Quiet Signals — Leadership Reflection Tool</p>
     </main>
     <script>
       window.addEventListener('load', () => {
@@ -324,14 +323,15 @@ function buildPdfHtml({
 </html>`
 }
 
-function PatternBar({ label, score, max = 16, color }: { label: string; score: number; max?: number; color: string }) {
+function PatternBar({ label, score, max = 16 }: { label: string; score: number; max?: number }) {
   const normalized = normalizeScore(score, max)
   const level = getScoreLevel(score, max)
+  const color = levelColor(level)
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground font-medium">{label}</span>
-        <span className="text-muted-foreground">{level}</span>
+        <span className="font-medium" style={{ color }}>{level}</span>
       </div>
       <div className="h-2.5 w-full bg-secondary rounded-full overflow-hidden">
         <motion.div
@@ -519,15 +519,14 @@ export default function ResultsScreen({ session, resources, resultMappings, save
                   label={dimensionLabels[key] ?? key}
                   score={score}
                   max={MAX_DIMENSION_SCORE}
-                  color={dimensionColors[key] ?? 'oklch(0.62 0.12 70)'}
                 />
               </div>
             ))}
           </div>
           <div className="flex gap-4 pt-1" aria-label="Signal level legend">
-            {['Low', 'Moderate', 'High'].map((l) => (
+            {(['Low', 'Moderate', 'High'] as const).map((l) => (
               <span key={l} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold/40 inline-block" aria-hidden="true" />
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: levelColor(l) }} aria-hidden="true" />
                 {l}
               </span>
             ))}
