@@ -47,18 +47,18 @@ function getSupportPlan(signal: BurnoutSignal): SupportPlan {
 
   if (signal === 'Moderate') {
     return {
-      heading: 'Counselling and therapy blend',
-      focus: 'Counselling + therapy',
+      heading: 'Coaching and therapy blend',
+      focus: 'Coaching + therapy',
       summary:
-        'A moderate pressure pattern may call for a balanced mix: counselling for reflection, boundaries, and practical coping, with therapy added if the pressure feels persistent, emotionally heavy, or difficult to unwind.',
+        'A moderate pressure pattern may call for a balanced mix: coaching for reflection, boundaries, practical routines, and next-step clarity, with therapy added if the pressure feels persistent, emotionally heavy, or difficult to unwind.',
     }
   }
 
   return {
-    heading: 'Counselling-focused support',
-    focus: 'Counselling',
+    heading: 'Coaching-focused support',
+    focus: 'Coaching',
     summary:
-      'A lighter pressure pattern may be well matched with counselling: a reflective, supportive space to protect what is working, strengthen recovery routines, and notice early signs before they build.',
+      'A lighter pressure pattern may be well matched with coaching: a practical, supportive space to protect what is working, strengthen recovery routines, set healthier boundaries, and notice early signs before they build.',
   }
 }
 

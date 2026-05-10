@@ -38,12 +38,6 @@ const modes: {
     title: 'Add voice signal only',
     description: 'On-device vocal pattern analysis without camera.',
   },
-  {
-    key: 'text-only',
-    icon: FileText,
-    title: 'Continue with scenarios only',
-    description: 'Skip optional signals and reflect through scenarios alone.',
-  },
 ]
 
 export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps) {
@@ -66,7 +60,15 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
     if (enabled) setSelectedMode('text-only')
   }
 
-  const canContinue = selectedMode !== null && nonDiag && supportive && consent
+  const canContinue = nonDiag && supportive && consent
+  const allAcknowledgementsChecked = nonDiag && supportive && consent
+  const continueMode = selectedMode ?? 'text-only'
+
+  const handleAgreeToAll = () => {
+    setNonDiag(true)
+    setSupportive(true)
+    setConsent(true)
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-background" role="main">
@@ -134,7 +136,7 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
                   return (
                     <motion.button
                       key={key}
-                      onClick={() => !isDisabled && setSelectedMode(key)}
+                      onClick={() => !isDisabled && setSelectedMode((currentMode) => currentMode === key ? null : key)}
                       whileHover={!isDisabled ? { y: -1 } : undefined}
                       whileTap={!isDisabled ? { scale: 0.99 } : undefined}
                       disabled={isDisabled}
@@ -188,11 +190,26 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
 
           {/* Consent checkboxes */}
           <div className="space-y-3 p-5 rounded-2xl bg-card border border-warm-border">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-4">Required acknowledgements</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Required acknowledgements</p>
+              <button
+                type="button"
+                onClick={handleAgreeToAll}
+                className={`inline-flex items-center justify-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                  allAcknowledgementsChecked
+                    ? 'border-gold bg-gold text-white'
+                    : 'border-gold/35 bg-gold/10 text-gold hover:bg-gold/15 hover:border-gold/60'
+                }`}
+                aria-pressed={allAcknowledgementsChecked}
+              >
+                {allAcknowledgementsChecked && <Check className="w-3.5 h-3.5" aria-hidden="true" />}
+                Agree to all
+              </button>
+            </div>
             {[
               { id: 'nonDiag', label: 'I understand this is not a diagnosis.', checked: nonDiag, onChange: setNonDiag },
               { id: 'supportive', label: 'I understand camera and voice signals are optional supportive context only.', checked: supportive, onChange: setSupportive },
-              { id: 'consentGiven', label: 'I consent to continue with the selected reflection mode.', checked: consent, onChange: setConsent },
+              { id: 'consentGiven', label: 'I consent to continue with this reflection.', checked: consent, onChange: setConsent },
             ].map(({ id, label, checked, onChange }) => (
               <label key={id} htmlFor={id} className="flex items-start gap-3 cursor-pointer group">
                 <div className="relative flex-shrink-0 mt-0.5">
@@ -218,16 +235,9 @@ export default function ConsentScreen({ onContinue, onBack }: ConsentScreenProps
             ))}
           </div>
 
-          {/* Safety wording */}
-          <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside leading-relaxed">
-            <li>This is not a diagnosis.</li>
-            <li>Camera and voice are optional supportive signals.</li>
-            <li>You can complete the reflection without camera or voice.</li>
-          </ul>
-
           {/* Continue button */}
           <motion.button
-            onClick={() => canContinue && onContinue(selectedMode!)}
+            onClick={() => canContinue && onContinue(continueMode)}
             disabled={!canContinue}
             whileHover={canContinue ? { scale: 1.01 } : {}}
             whileTap={canContinue ? { scale: 0.99 } : {}}

@@ -115,7 +115,7 @@ export default function LandingScreen({ onStart, onHowItWorks, onContactUs }: La
           className="mt-8 space-y-4"
         >
           <p className="text-2xl md:text-3xl font-light text-foreground text-balance leading-relaxed" style={{ fontFamily: 'var(--font-cormorant)' }}>
-            Notice what pressure is trying to tell you.
+            Listen before it gets loud
           </p>
           <p className="text-base text-muted-foreground leading-relaxed text-pretty max-w-xl mx-auto">
             A leadership reflection tool that helps you recognize hidden pressure patterns and find the right next step.

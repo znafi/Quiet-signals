@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { User, Building2, Copy, ArrowLeft, CheckCircle } from 'lucide-react'
+import { User, Building2, ArrowLeft } from 'lucide-react'
 
 interface PathwayScreenProps {
   onSelectIndividual: () => void
@@ -11,17 +11,6 @@ interface PathwayScreenProps {
 
 export default function PathwayScreen({ onSelectIndividual, onBack }: PathwayScreenProps) {
   const [showOrg, setShowOrg] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  const handleCopyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText('connect@urbanconsciousness.com')
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
-    } catch {
-      // fallback silently
-    }
-  }
 
   return (
     <main className="min-h-screen flex flex-col bg-background" role="main">
@@ -98,10 +87,10 @@ export default function PathwayScreen({ onSelectIndividual, onBack }: PathwayScr
                   For my organization or team
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Explore leadership development support for a group, team, or workplace.
+                  Check the current availability of group, team, or workplace support.
                 </p>
                 <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gold group-hover:gap-2.5 transition-all">
-                  Request consult
+                  View status
                   <span aria-hidden="true">→</span>
                 </div>
               </motion.button>
@@ -126,21 +115,8 @@ export default function PathwayScreen({ onSelectIndividual, onBack }: PathwayScr
                 Organizational support
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed text-pretty">
-                Thank you for your interest in organizational leadership development support. At this stage, organizational support is handled through direct consultation. Please contact us to discuss leadership development support for your team or organization.
+                Thank you for your interest in organizational leadership development support. Quiet Signals does not offer organizational support at this time.
               </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-card border border-warm-border space-y-4">
-              <p className="text-sm font-medium text-foreground">connect@urbanconsciousness.com</p>
-              <button
-                onClick={handleCopyEmail}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium mx-auto transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                style={{ background: 'oklch(0.62 0.12 70)', color: 'oklch(0.985 0.004 80)' }}
-                aria-label={copied ? 'Email copied to clipboard' : 'Copy email address'}
-              >
-                {copied ? <CheckCircle className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
-                {copied ? 'Copied!' : 'Copy email'}
-              </button>
             </div>
 
             <button

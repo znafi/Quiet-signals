@@ -120,7 +120,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
         <p className="text-xs text-muted-foreground mt-1.5 text-right">{progressPct}% complete</p>
       </div>
 
-      <section className="flex-1 flex flex-col px-6 py-6 max-w-2xl mx-auto w-full">
+      <section className="flex-1 flex flex-col px-6 py-6 max-w-3xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${scenarioIndex}-${questionIndex}`}
@@ -138,7 +138,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
                     src={scenarioIllustration.src}
                     alt={scenarioIllustration.alt}
                     placeholder="blur"
-                    sizes="(min-width: 768px) 640px, calc(100vw - 48px)"
+                    sizes="(min-width: 768px) 768px, calc(100vw - 48px)"
                     className="h-auto w-full max-h-[280px] object-cover object-center"
                     priority={scenarioIndex === 1}
                   />
@@ -164,7 +164,7 @@ export default function ScenarioScreen({ scenarios, scenarioIndex, questionIndex
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground italic">There are no right or wrong answers.</p>
               <h3
-                className="text-2xl md:text-3xl font-light text-foreground leading-snug text-balance"
+                className="text-2xl md:text-[1.75rem] font-light text-foreground leading-snug"
                 style={{ fontFamily: 'var(--font-cormorant)' }}
               >
                 {question.question}

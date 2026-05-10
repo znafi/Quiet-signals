@@ -204,9 +204,10 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
 
   const handleContinue = () => {
     teardownCamera()
-    const baselinePts = confirmation ? getSelfConfirmationPoints(confirmation) : 0
+    const shouldScoreConfirmation = outcome?.quality.usable === true && outcome.result.level !== 'low'
+    const baselinePts = shouldScoreConfirmation && confirmation ? getSelfConfirmationPoints(confirmation) : 0
     const camPts = outcome?.supportivePoints ?? 0
-    const camWeighted = confirmation === 'no' ? 0 : camPts
+    const camWeighted = shouldScoreConfirmation && confirmation === 'no' ? 0 : camPts
     const description = outcome?.quality.usable ? describeSignal(outcome.result.level) : null
     onContinue(confirmation, baselinePts + camWeighted, description)
   }
@@ -224,8 +225,8 @@ export default function FaceScreen({ onContinue, onSkip, onBack }: FaceScreenPro
   /* ───────────────────────────── derived state ───────────────────────────── */
 
   const usable = outcome?.quality.usable ?? false
-  // Show the confirmation question for ALL usable reads (including 'low'),
-  // so the user's self-assessment is always captured and reflected in the score.
+  // Show the confirmation question for all usable reads, including low readings.
+  // Low readings capture feedback without adding pressure-pattern points.
   const showConfirmation = outcome != null && usable
   const faceReady = liveSnapshot.faceDetected && cameraReady
   const modelLoading = landmarkerStatus === 'loading'
